@@ -39,17 +39,15 @@ class OpticalComponent(Vector):
     def get_bbox(self) -> tuple:
         raise NotImplementedError("Subclasses must implement get_bbox method")
 
-    def _RotAroundCenter(self, axis, theta):
-        R = self.R(axis, theta)
-        self.transform_matrix = np.dot(R, self.transform_matrix)
-        return self
-
     def _RotAroundLocal(self, axis, localpoint, theta):
         R = self.R(axis, theta)
         localpoint = np.array(localpoint)
         self.transform_matrix = np.dot(R, self.transform_matrix)
         self.origin = self.origin + np.dot(R, -localpoint) + localpoint
         return self
+
+    def _RotAroundCenter(self, axis, theta):
+        return self._RotAroundLocal(axis, [0, 0, 0], theta)
 
     def to_local_coordinates(self, ray: Ray) -> Ray:
         """
@@ -448,58 +446,6 @@ class Lens(OpticalComponent):
 
     def get_bbox(self):
         return self.surface.get_bbox()
-
-
-def MLA(o, p, f, r, n) -> List[Lens]:
-    """
-    Micro-lens array
-    - o: origin of the first lens
-    - p: pitch
-    - f: focal length
-    - r: radius of the lens
-    - n: number of lenses (int/tuple)
-    """
-    if isinstance(n, int):
-        n = (n, 1)
-    ny, nz = n
-    lenses = []
-    for i in range(nz):
-        for j in range(ny):
-            z = i * p
-            y = j * p
-            origin = np.array([0, y, z]) + o
-            lens = Lens(origin, f, radius=r)
-            lenses.append(lens)
-    return lenses
-
-
-def GlassSlab(
-    origin, width, height, thickness, n1, n2, reflectivity=0.0, transmission=1.0
-):
-    ref_surfaces = []
-    ref_surfaces.append(
-        SquareRefractive(
-            origin + np.array([+thickness / 2, 0, 0]),
-            width,
-            height,
-            n1,
-            n2,
-            reflectivity=reflectivity,
-            transmission=transmission,
-        )
-    )
-    ref_surfaces.append(
-        SquareRefractive(
-            origin + np.array([-thickness / 2, 0, 0]),
-            width,
-            height,
-            n2,
-            n1,
-            reflectivity=reflectivity,
-            transmission=transmission,
-        )
-    )
-    return ref_surfaces
 
 
 class CylMirror(BaseMirror):

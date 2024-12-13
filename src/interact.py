@@ -116,5 +116,5 @@ class InteractiveOpticalTable:
         print(params)
 
 
-interactive_table = InteractiveOpticalTable(fileName="../demo/vipa_rect.py")
+interactive_table = InteractiveOpticalTable(fileName="../demo/test.py")
 interactive_table.render_interactive()
