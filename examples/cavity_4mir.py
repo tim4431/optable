@@ -3,7 +3,7 @@
 import numpy as np, sys
 
 sys.path.append("../src/")
-from optical_components import *
+from optical_component import *
 from optical_table import OpticalTable
 import matplotlib.pyplot as plt
 

@@ -1,6 +1,6 @@
 import scipy.optimize
 from base import *
-from rays import *
+from ray import *
 from surfaces import *
 import scipy
 
@@ -250,7 +250,6 @@ class BaseMirror(OpticalComponent):
         self._edge_color = "green"
 
     def interact_local(self, ray):
-        # normal = np.array([1, 0, 0])  # normal in local frame is always x-axis
         P, t = self.intersect_point_local(ray)
         normal = self.surface.normal(P)
         #
@@ -265,6 +264,73 @@ class BaseMirror(OpticalComponent):
                 ray.intensity * self.transmission,
             )
             rays.append(transmitted_ray)
+        #
+        return rays
+
+    def render(self, ax, type: str, **kwargs):
+        super().render(ax, type, color=self._edge_color, **kwargs)
+
+    def get_bbox(self):
+        return self.surface.get_bbox()
+
+
+class BaseRefraciveSurface(OpticalComponent):
+    def __init__(
+        self,
+        origin,
+        n1: Union[float, callable] = 1.0,
+        n2: Union[float, callable] = 1.0,
+        reflectivity: float = 0.0,
+        transmission: float = 1.0,
+        **kwargs,
+    ):
+        super().__init__(origin, **kwargs)
+        if isinstance(n1, (int, float)):
+            self.n1 = lambda l: n1
+        else:
+            self.n1 = n1
+        if isinstance(n2, (int, float)):
+            self.n2 = lambda l: n2
+        else:
+            self.n2 = n2
+        #
+        self.reflectivity = reflectivity
+        self.transmission = transmission
+        #
+        self._edge_color = "gray"
+
+    def interact_local(self, ray):
+        P, t = self.intersect_point_local(ray)
+        normal = self.surface.normal(P)
+        n1, n2 = self.n2(ray.wavelength), self.n1(ray.wavelength)
+        #
+        rays = []
+        # default: n2 to n1
+        if np.dot(ray.direction, normal) < 0:  # incident from n1 to n2
+            normal = -normal
+            n1, n2 = n2, n1
+        #
+        r_n = np.dot(ray.direction, normal)
+        r_t = ray.direction - r_n * normal
+        cos_theta_i = r_n
+        sin_theta_i = np.sqrt(1 - cos_theta_i**2)
+        sin_theta_t = (n2 * sin_theta_i) / n1
+        if sin_theta_t < 1:
+            cos_theta_t = np.sqrt(1 - sin_theta_t**2)
+            transmitted_direction = (n2 / n1) * r_t + cos_theta_t * normal
+            transmitted_ray = Ray(
+                P, transmitted_direction, ray.intensity * self.transmission
+            )
+            rays.append(transmitted_ray)
+
+        #
+        if self.reflectivity > 0:
+            normal = -normal
+            reflected_direction = ray.direction + 2 * cos_theta_i * normal
+            reflected_ray = Ray(
+                P, reflected_direction, ray.intensity * self.reflectivity
+            )
+            rays.append(reflected_ray)
         #
         return rays
 
@@ -303,6 +369,31 @@ class SquareMirror(BaseMirror):
     ):
         super().__init__(
             origin, reflectivity=reflectivity, transmission=transmission, **kwargs
+        )
+        self.width = width
+        self.height = height
+        self.surface = Rectangle(width, height)
+
+
+class SquareRefractive(BaseRefraciveSurface):
+    def __init__(
+        self,
+        origin,
+        width: float = 1.0,
+        height: float = 1.0,
+        n1: Union[float, callable] = 1.0,
+        n2: Union[float, callable] = 1.0,
+        reflectivity: float = 0.0,
+        transmission: float = 1.0,
+        **kwargs,
+    ):
+        super().__init__(
+            origin,
+            n1=n1,
+            n2=n2,
+            reflectivity=reflectivity,
+            transmission=transmission,
+            **kwargs,
         )
         self.width = width
         self.height = height
@@ -382,6 +473,35 @@ def MLA(o, p, f, r, n) -> List[Lens]:
     return lenses
 
 
+def GlassSlab(
+    origin, width, height, thickness, n1, n2, reflectivity=0.0, transmission=1.0
+):
+    ref_surfaces = []
+    ref_surfaces.append(
+        SquareRefractive(
+            origin + np.array([+thickness / 2, 0, 0]),
+            width,
+            height,
+            n1,
+            n2,
+            reflectivity=reflectivity,
+            transmission=transmission,
+        )
+    )
+    ref_surfaces.append(
+        SquareRefractive(
+            origin + np.array([-thickness / 2, 0, 0]),
+            width,
+            height,
+            n2,
+            n1,
+            reflectivity=reflectivity,
+            transmission=transmission,
+        )
+    )
+    return ref_surfaces
+
+
 class CylMirror(BaseMirror):
     def __init__(
         self,
@@ -395,76 +515,3 @@ class CylMirror(BaseMirror):
         self.radius = radius
         self.height = height
         self.surface = Cylinder(radius, height, theta_range)
-
-
-class Monitor(OpticalComponent):
-    def __init__(self, origin, width, height, **kwargs):
-        super().__init__(origin, **kwargs)
-        self.width = width
-        self.height = height
-        self.surface = Rectangle(width, height)
-        self._edge_color = "orange"
-        self.data = []
-
-    @property
-    def ndata(self):
-        return len(self.data)
-
-    def interact_local(self, ray):
-        return [ray]
-
-    def render(self, ax, type: str, **kwargs):
-        return super().render(ax, type, color=self._edge_color, **kwargs)
-
-    def get_bbox(self):
-        return self.surface.get_bbox()
-
-    def record(self, rays: List[Ray]):
-        Pts = []
-        for r in rays:
-            local_ray = self.to_local_coordinates(r)
-            P, t = self.intersect_point_local(local_ray)
-            if P is not None:
-                Pts.append((P, local_ray.intensity))
-        self.data.extend(Pts)
-
-    def render_hist(self, ax, type="Y", **kwargs):
-        if type == "Y":
-            yList = [data[0][1] for data in self.data]
-            ax.hist(
-                yList,
-                bins=30,
-                density=False,
-                range=(-self.width / 2, self.width / 2),
-                **kwargs,
-            )
-            ax.set_xlabel("Y")
-        if type == "YZ":
-            yList = [data[0][1] for data in self.data]
-            zList = [data[0][2] for data in self.data]
-            ax.hist2d(
-                yList,
-                zList,
-                bins=30,
-                density=False,
-                range=(
-                    (-self.width / 2, self.width / 2),
-                    (-self.height / 2, self.height / 2),
-                ),
-                **kwargs,
-            )
-            ax.set_xlabel("Y")
-            ax.set_ylabel("Z")
-
-    def render_scatter(self, ax, **kwargs):
-        yList = [data[0][1] for data in self.data]
-        zList = [data[0][2] for data in self.data]
-        IList = [data[1] for data in self.data]
-        ax.scatter(
-            yList, zList, marker="+", alpha=np.clip(IList, 0.1, 1), c="blue", **kwargs
-        )
-        ax.set_xlim(-self.width / 2, self.width / 2)
-        ax.set_ylim(-self.height / 2, self.height / 2)
-        ax.set_xlabel("Y")
-        ax.set_ylabel("Z")
-        ax.set_title(str(self.name))

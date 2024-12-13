@@ -9,6 +9,7 @@ class Ray(Vector):
         origin,
         direction,
         intensity: float = 1.0,
+        wavelength=None,
         length=None,
         alive=True,
         **kwargs,
@@ -17,6 +18,9 @@ class Ray(Vector):
         self.length = float(length) if length else None  # Length of the ray
         self.direction = direction  # Direction vector
         self.intensity = float(intensity)  # Intensity of the ray
+        self.wavelength = (
+            float(wavelength) if wavelength else None
+        )  # Wavelength of the ray
         self.alive = alive  # Ray is alive means it has not been absorbed or terminated
 
     def __repr__(self):
