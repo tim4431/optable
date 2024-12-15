@@ -253,13 +253,13 @@ class BaseMirror(OpticalComponent):
         #
         rays = []
         reflected_direction = ray.direction - 2 * np.dot(ray.direction, normal) * normal
-        reflected_ray = Ray(P, reflected_direction, ray.intensity * self.reflectivity)
+        reflected_ray = Ray(
+            P, reflected_direction, ray.intensity * self.reflectivity, _id=ray._id
+        )
         rays.append(reflected_ray)
         if self.transmission > 0:
             transmitted_ray = Ray(
-                P,
-                ray.direction,
-                ray.intensity * self.transmission,
+                P, ray.direction, ray.intensity * self.transmission, _id=ray._id
             )
             rays.append(transmitted_ray)
         #
@@ -317,7 +317,7 @@ class BaseRefraciveSurface(OpticalComponent):
             cos_theta_t = np.sqrt(1 - sin_theta_t**2)
             transmitted_direction = (n2 / n1) * r_t + cos_theta_t * normal
             transmitted_ray = Ray(
-                P, transmitted_direction, ray.intensity * self.transmission
+                P, transmitted_direction, ray.intensity * self.transmission, _id=ray._id
             )
             rays.append(transmitted_ray)
 
@@ -326,7 +326,7 @@ class BaseRefraciveSurface(OpticalComponent):
             normal = -normal
             reflected_direction = ray.direction + 2 * cos_theta_i * normal
             reflected_ray = Ray(
-                P, reflected_direction, ray.intensity * self.reflectivity
+                P, reflected_direction, ray.intensity * self.reflectivity, _id=ray._id
             )
             rays.append(reflected_ray)
         #

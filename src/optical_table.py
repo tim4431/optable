@@ -9,6 +9,7 @@ class OpticalTable:
         self.components = []
         self.rays = []
         self.monitors = []
+        self.norender_set = set()
 
     def add_components(self, component: Union[OpticalComponent, List]):
         if isinstance(component, OpticalComponent):
@@ -45,7 +46,7 @@ class OpticalTable:
         #
         return copy.deepcopy(self.rays)
 
-    def _single_ray_tracing(self, ray: Ray):
+    def _single_ray_tracing(self, ray: Ray, perfomance_limit=None):
         """
         Perform ray tracing simulation.
         """
@@ -53,8 +54,14 @@ class OpticalTable:
         exit_flag = False
         t_start = time.time()
         trace_num = 0
-        MAX_TRACEING_TIME = 0.1
-        MAX_TRACE_NUM = 500
+        if perfomance_limit is None:
+            MAX_TRACEING_TIME = 0.3
+            MAX_TRACE_NUM = 500
+        else:
+            if "max_trace_time" in perfomance_limit:
+                MAX_TRACEING_TIME = perfomance_limit["max_trace_time"]
+            if "max_trace_num" in perfomance_limit:
+                MAX_TRACE_NUM = perfomance_limit["max_trace_num"]
         while (
             (not exit_flag)
             and (time.time() - t_start < MAX_TRACEING_TIME)
@@ -105,12 +112,17 @@ class OpticalTable:
                 plt.subplots_adjust(left=0.1, right=0.7)
             ax.set_xlabel("X")
             ax.set_ylabel("Y")
+            # print(self.norender_set)
             for ray in self.rays:
-                ray.render(ax, type="Z", **kwargs)
+                # print(ray._id)
+                if ray._id not in self.norender_set:
+                    ray.render(ax, type="Z", **kwargs)
             for component in self.components:
-                component.render(ax, type="Z", **kwargs)
+                if component._id not in self.norender_set:
+                    component.render(ax, type="Z", **kwargs)
             for monitor in self.monitors:
-                monitor.render(ax, type="Z", **kwargs)
+                if monitor._id not in self.norender_set:
+                    monitor.render(ax, type="Z", **kwargs)
             ax.set_aspect("equal")
         elif type == "3D":
             if ax is None:
@@ -120,11 +132,14 @@ class OpticalTable:
             ax.set_ylabel("Y")
             # ax.set_zlabel("Z")
             for ray in self.rays:
-                ray.render(ax, type="3D", **kwargs)
+                if ray._id not in self.norender_set:
+                    ray.render(ax, type="3D", **kwargs)
             for component in self.components:
-                component.render(ax, type="3D", **kwargs)
+                if component._id not in self.norender_set:
+                    component.render(ax, type="3D", **kwargs)
             for monitor in self.monitors:
-                monitor.render(ax, type="3D", **kwargs)
+                if monitor._id not in self.norender_set:
+                    monitor.render(ax, type="3D", **kwargs)
             ax.set_aspect("equal")
         else:
             raise ValueError(f"render: Invalid type: {type}")
