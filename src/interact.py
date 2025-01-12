@@ -10,6 +10,7 @@ class InteractiveOpticalTable:
         self.fileName = fileName
         self.last_update_time = time.time()
         self.FPS = FPS
+        self.render = True
         #
         self.namespace = {}
         self._create_axes()
@@ -90,7 +91,8 @@ class InteractiveOpticalTable:
 
                 params = self._sliders_to_params(sliders)
                 self.update_table(**params)
-                plt.draw()
+                if self.render:
+                    plt.draw()
 
         for slider in sliders.values():
             slider.on_changed(update)
@@ -101,7 +103,7 @@ class InteractiveOpticalTable:
         params = self._sliders_to_params(sliders)
         print(params)
 
-    def optimize(self, render=False, maximize=False):
+    def optimize(self, maximize=False):
         """
         Optimize the table configuration to maximize the cost function.
         """
@@ -117,7 +119,7 @@ class InteractiveOpticalTable:
             params = {name: val for name, val in zip(param_names, vals)}
             self._clear_axes()
             self.update_table(**params)
-            if render:
+            if self.render:
                 plt.draw()
                 plt.pause(0.01)
             cost_func = float(self.namespace["cost_func"])
@@ -135,13 +137,14 @@ class InteractiveOpticalTable:
 
 
 if __name__ == "__main__":
-    FILE_NAME = os.path.join(os.path.dirname(__file__), "../demo", "curvemirror.py")
+    FILE_NAME = os.path.join(os.path.dirname(__file__), "../demo", "vipa_rect.py")
     MODE = "interact"
     # MODE = "optimize"
     interactive_table = InteractiveOpticalTable(fileName=FILE_NAME)
+    interactive_table.render = False
 
     # Execute based on the chosen mode
     if MODE == "interact":
         interactive_table.slider_interactive()
     elif MODE == "optimize":
-        interactive_table.optimize(render=False, maximize=True)
+        interactive_table.optimize(maximize=True)

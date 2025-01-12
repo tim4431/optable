@@ -77,6 +77,8 @@ class Monitor(OpticalComponent):
             ax.set_ylabel("Z")
 
     def render_scatter(self, ax, **kwargs):
+        if len(self.data) == 0:
+            return
         yList = [data[0][1] for data in self.data]
         zList = [data[0][2] for data in self.data]
         IList = [data[1] for data in self.data]

@@ -141,3 +141,60 @@ class Ray(Vector):
                     color=color,
                     alpha=alpha,
                 )
+
+
+class GaussianBeam(Ray):
+    def __init__(
+        self,
+        origin,
+        direction,
+        intensity: float = 1.0,
+        wavelength=None,
+        qo=None,  # q at origin
+        w0=None,  # if specified, qo will be calculated from w0
+        n=1.0,
+        **kwargs,
+    ):
+        super().__init__(
+            origin,
+            direction,
+            intensity,
+            wavelength=wavelength,
+            **kwargs,
+        )
+        self.wavelength = wavelength
+        self.n = n  # refractive index
+        if qo is not None:
+            self.qo = qo  # q at origin
+        else:
+            self.qo = self.q_at_waist(w0)
+
+    def q_at_waist(self, w0):
+        return (1j * np.pi * w0**2) / self.wavelength
+
+    def q_at_z(self, z):
+        return self.qo + z
+
+    def distance_to_waist(self, q):
+        z = np.real(q)
+        return float(z)
+
+    def waist(self, q):
+        w0 = np.sqrt((self.wavelength * np.imag(q)) / (self.n * np.pi))
+        return float(w0)
+
+    def rayleigh_range(self, q):
+        zr = np.imag(q)
+        return float(zr)
+
+    def radius_of_curvature(self, q):
+        R = 1 / np.real(1 / q)
+        return float(R)
+
+    def spot_size(self, z):
+        q = self.q_at_z(z)
+        w = np.sqrt(-self.wavelength / (self.n * np.pi * np.imag(1 / q)))
+        return w
+
+    def Propagate(self, z):
+        return self.copy(qo=self.q_at_z(z))

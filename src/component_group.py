@@ -74,7 +74,7 @@ class GlassSlab(ComponentGroup):
         n1,
         n2,
         reflectivity=0,
-        transmission=0,
+        transmission=1,
     ):
         super().__init__(origin)
         self.add_component(
