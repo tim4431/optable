@@ -68,11 +68,11 @@ class GlassSlab(ComponentGroup):
     def __init__(
         self,
         origin,
-        width,
-        height,
-        thickness,
-        n1,
-        n2,
+        width=1.0,
+        height=1.0,
+        thickness=1.0,
+        n1=1.0,
+        n2=1.5,
         reflectivity=0,
         transmission=1,
     ):

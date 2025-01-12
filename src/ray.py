@@ -12,6 +12,8 @@ class Ray(Vector):
         wavelength=None,
         length=None,
         alive=True,
+        qo=None,  # q at origin
+        w0=None,  # if specified, qo will be calculated from w0
         **kwargs,
     ):
         super().__init__(origin, **kwargs)
@@ -22,6 +24,16 @@ class Ray(Vector):
             float(wavelength) if wavelength else None
         )  # Wavelength of the ray
         self.alive = alive  # Ray is alive means it has not been absorbed or terminated
+        self.n = 1.0  # refractive index, default is 1.0
+        #
+        # >>> Gaussian Beam Parameters
+        if qo is not None:
+            self.qo = qo  # q at origin
+        elif w0 is not None:
+            self.qo = self.q_at_waist(w0)
+        else:
+            self.qo = None
+        #
 
     def __repr__(self):
         return f"Ray(origin={self.origin}, direction={self.direction}, intensity={self.intensity}, length={self.length}, alive={self.alive})"
@@ -46,6 +58,39 @@ class Ray(Vector):
         self.origin = self.origin + np.dot(R, -localpoint) + localpoint
         return self
 
+    # >>> Gaussian Beam Functions
+    def q_at_waist(self, w0):
+        return (1j * np.pi * w0**2) / self.wavelength
+
+    def q_at_z(self, z):
+        return self.qo + z
+
+    def distance_to_waist(self, q):
+        z = np.real(q)
+        return z
+
+    def waist(self, q):
+        w0 = np.sqrt((self.wavelength * np.imag(q)) / (self.n * np.pi))
+        return float(w0)
+
+    def rayleigh_range(self, q):
+        zr = np.imag(q)
+        return float(zr)
+
+    def radius_of_curvature(self, q):
+        R = 1 / np.real(1 / q)
+        return float(R)
+
+    def spot_size(self, z):
+        q = self.q_at_z(z)
+        w = np.sqrt(-self.wavelength / (self.n * np.pi * np.imag(1 / q)))
+        return w
+
+    def Propagate(self, z):
+        return self.copy(qo=self.q_at_z(z))
+
+    # <<< Gaussian Beam Functions
+
     def render(self, ax, type: str, **kwargs):
         """
         Render the ray in 2D.
@@ -54,22 +99,22 @@ class Ray(Vector):
 
         Parameters:
             ax: Matplotlib 2D axis object for plotting.
+            type: str, the type of rendering (e.g., "Z" for 2D, "3D" for 3D).
+            kwargs: Additional arguments for customization (e.g., edge color).
         """
 
         # Set color and transparency based on ray properties
         # color = "blue" if self.length is None else "black"
-        color = "black"
-        alpha = max(0.1, min(1.0, self.intensity))
+        color = kwargs.get("color", "black")
         linewidth = kwargs.get("linewidth", 0.5)
-        #
+        alpha = max(0.1, min(1.0, self.intensity))
+        length = self.length if self.length else RAY_NONE_LENGTH
+
         #
         if type == "Z":
             # Determine the start and end points of the ray
             start = self.origin[:2]
-            if self.length is not None:
-                end = start + self.length * self.direction[:2]
-            else:
-                end = start + self.direction[:2] * RAY_NONE_LENGTH
+            end = start + self.direction[:2] * length
 
             # Plot the line representing the ray
             ax.plot(
@@ -104,14 +149,32 @@ class Ray(Vector):
                     ec=color,
                     alpha=alpha,
                 )
+            #
+
+            gaussian_beam = kwargs.get("gaussian_beam", False)
+            if gaussian_beam:
+                t = np.linspace(0, length, 50)
+                x = self.origin[0] + t * self.direction[0]
+                y = self.origin[1] + t * self.direction[1]
+                spots = self.spot_size(t)
+                spot_size_scale = kwargs.get("spot_size_scale", 1.0)
+                spots = spot_size_scale * spots
+                pts = np.array([x, y]).T.reshape(-1, 1, 2)
+                segments = np.concatenate([pts[:-1], pts[1:]], axis=1)
+                from matplotlib.collections import LineCollection
+
+                # Create a LineCollection with varying widths
+                lc = LineCollection(
+                    segments, linewidths=spots, alpha=alpha / 2, color="red"
+                )
+                # lc.set_array(t)  # Optional: Use t to colorize the line
+
+                ax.add_collection(lc)
 
         elif type == "3D":
             # Determine the start and end points of the ray
             start = self.origin
-            if self.length is not None:
-                end = start + self.length * self.direction
-            else:
-                end = start + self.direction * RAY_NONE_LENGTH
+            end = start + self.direction * length
 
             ax.plot(
                 [start[0], end[0]],
@@ -141,60 +204,3 @@ class Ray(Vector):
                     color=color,
                     alpha=alpha,
                 )
-
-
-class GaussianBeam(Ray):
-    def __init__(
-        self,
-        origin,
-        direction,
-        intensity: float = 1.0,
-        wavelength=None,
-        qo=None,  # q at origin
-        w0=None,  # if specified, qo will be calculated from w0
-        n=1.0,
-        **kwargs,
-    ):
-        super().__init__(
-            origin,
-            direction,
-            intensity,
-            wavelength=wavelength,
-            **kwargs,
-        )
-        self.wavelength = wavelength
-        self.n = n  # refractive index
-        if qo is not None:
-            self.qo = qo  # q at origin
-        else:
-            self.qo = self.q_at_waist(w0)
-
-    def q_at_waist(self, w0):
-        return (1j * np.pi * w0**2) / self.wavelength
-
-    def q_at_z(self, z):
-        return self.qo + z
-
-    def distance_to_waist(self, q):
-        z = np.real(q)
-        return float(z)
-
-    def waist(self, q):
-        w0 = np.sqrt((self.wavelength * np.imag(q)) / (self.n * np.pi))
-        return float(w0)
-
-    def rayleigh_range(self, q):
-        zr = np.imag(q)
-        return float(zr)
-
-    def radius_of_curvature(self, q):
-        R = 1 / np.real(1 / q)
-        return float(R)
-
-    def spot_size(self, z):
-        q = self.q_at_z(z)
-        w = np.sqrt(-self.wavelength / (self.n * np.pi * np.imag(1 / q)))
-        return w
-
-    def Propagate(self, z):
-        return self.copy(qo=self.q_at_z(z))

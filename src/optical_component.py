@@ -253,13 +253,30 @@ class BaseMirror(OpticalComponent):
         #
         rays = []
         reflected_direction = ray.direction - 2 * np.dot(ray.direction, normal) * normal
-        reflected_ray = Ray(
-            P, reflected_direction, ray.intensity * self.reflectivity, _id=ray._id
+        qo = None if ray.qo is None else ray.q_at_z(t)
+        # reflected_ray = Ray(
+        #     P,
+        #     reflected_direction,
+        #     ray.intensity * self.reflectivity,
+        #     _id=ray._id,
+        #     qo=qo,
+        # )
+        reflected_ray = ray.copy(
+            origin=P,
+            direction=reflected_direction,
+            intensity=ray.intensity * self.reflectivity,
+            qo=qo,
         )
         rays.append(reflected_ray)
         if self.transmission > 0:
-            transmitted_ray = Ray(
-                P, ray.direction, ray.intensity * self.transmission, _id=ray._id
+            # transmitted_ray = Ray(
+            #     P, ray.direction, ray.intensity * self.transmission, _id=ray._id, qo=qo
+            # )
+            transmitted_ray = ray.copy(
+                origin=P,
+                direction=ray.direction,
+                intensity=ray.intensity * self.transmission,
+                qo=qo,
             )
             rays.append(transmitted_ray)
         #
@@ -282,6 +299,9 @@ class BaseRefraciveSurface(OpticalComponent):
         transmission: float = 1.0,
         **kwargs,
     ):
+        """
+        n1: x>0, n2: x<0
+        """
         super().__init__(origin, **kwargs)
         if isinstance(n1, (int, float)):
             self.n1 = lambda l: n1
@@ -300,14 +320,15 @@ class BaseRefraciveSurface(OpticalComponent):
     def interact_local(self, ray):
         P, t = self.intersect_point_local(ray)
         normal = self.surface.normal(P)
-        n1, n2 = self.n2(ray.wavelength), self.n1(ray.wavelength)
+        n1, n2 = self.n1(ray.wavelength), self.n2(ray.wavelength)
         #
         rays = []
-        # default: n2 to n1
+        # take n2 to n1 as normal>0
         if np.dot(ray.direction, normal) < 0:  # incident from n1 to n2
             normal = -normal
             n1, n2 = n2, n1
-        #
+        # now we are always treating the case incident from n2 to n1
+        qo = None if ray.qo is None else ray.q_at_z(t) * n1 / n2
         r_n = np.dot(ray.direction, normal)
         r_t = ray.direction - r_n * normal
         cos_theta_i = r_n
@@ -316,8 +337,15 @@ class BaseRefraciveSurface(OpticalComponent):
         if sin_theta_t < 1:
             cos_theta_t = np.sqrt(1 - sin_theta_t**2)
             transmitted_direction = (n2 / n1) * r_t + cos_theta_t * normal
-            transmitted_ray = Ray(
-                P, transmitted_direction, ray.intensity * self.transmission, _id=ray._id
+            # transmitted_ray = Ray(
+            #     P, transmitted_direction, ray.intensity * self.transmission, _id=ray._id
+            # )
+            transmitted_ray = ray.copy(
+                origin=P,
+                direction=transmitted_direction,
+                intensity=ray.intensity * self.transmission,
+                qo=qo,
+                n=n1,
             )
             rays.append(transmitted_ray)
 
@@ -325,8 +353,14 @@ class BaseRefraciveSurface(OpticalComponent):
         if self.reflectivity > 0:
             normal = -normal
             reflected_direction = ray.direction + 2 * cos_theta_i * normal
-            reflected_ray = Ray(
-                P, reflected_direction, ray.intensity * self.reflectivity, _id=ray._id
+            # reflected_ray = Ray(
+            #     P, reflected_direction, ray.intensity * self.reflectivity, _id=ray._id
+            # )
+            reflected_ray = ray.copy(
+                origin=P,
+                direction=reflected_direction,
+                intensity=ray.intensity * self.reflectivity,
+                qo=qo,
             )
             rays.append(reflected_ray)
         #
@@ -432,12 +466,18 @@ class Lens(OpticalComponent):
     def interact_local(self, ray):
         normal = np.array([1, 0, 0])  # normal in local frame is always x-axis
         P, t = self.intersect_point_local(ray)
+        if ray.qo is None:
+            qo = None
+        else:
+            q1 = ray.q_at_z(t)
+            qo = q1 / (1 - (q1 / self.focal_length))
         #
         v0 = ray.direction
         f = self.focal_length
         # lens equation: v' = v - P/f
         v = v0 - P / f
-        deflected_ray = Ray(P, v, ray.intensity * self.transmission)
+        # deflected_ray = Ray(P, v, ray.intensity * self.transmission)
+        deflected_ray = ray.copy(origin=P, direction=v, intensity=ray.intensity, qo=qo)
         rays = [deflected_ray]
         return rays
 
