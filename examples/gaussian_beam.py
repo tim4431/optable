@@ -50,5 +50,5 @@ table.render(
 
 if __name__ == "__main__":
     # plt.axis("off")
-    # plt.savefig("gaussian_beam.png", dpi=300, bbox_inches="tight")
+    plt.savefig("../docs/gaussian_beam.png", dpi=300, bbox_inches="tight")
     plt.show()
