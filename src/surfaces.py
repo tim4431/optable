@@ -33,6 +33,16 @@ class Surface(Base):
             "Method 'parametric_boundary' must be implemented in the derived class"
         )
 
+    def merge_bbox(self, bbox1, bbox2):
+        return (
+            min(bbox1[0], bbox2[0]),
+            max(bbox1[1], bbox2[1]),
+            min(bbox1[2], bbox2[2]),
+            max(bbox1[3], bbox2[3]),
+            min(bbox1[4], bbox2[4]),
+            max(bbox1[5], bbox2[5]),
+        )
+
 
 class Plane(Surface):
     def __init__(self):
@@ -44,6 +54,44 @@ class Plane(Surface):
 
     def normal(self, P: np.ndarray) -> np.ndarray:
         return self._normal
+
+    def union(self, other):
+        obj = Plane()
+
+        def within_boundary(P):
+            return self.within_boundary(P) or other.within_boundary(P)
+
+        def parametric_boundary(t, type):
+            return np.hstack(
+                [self.parametric_boundary(t, type), other.parametric_boundary(t, type)]
+            )
+
+        def get_bbox():
+            return self.merge_bbox(self.get_bbox(), other.get_bbox())
+
+        obj.within_boundary = within_boundary
+        obj.parametric_boundary = parametric_boundary
+        obj.get_bbox = get_bbox
+        return obj
+
+    def subtract(self, other):
+        obj = Plane()
+
+        def within_boundary(P):
+            return self.within_boundary(P) and not other.within_boundary(P)
+
+        def parametric_boundary(t, type):
+            return np.hstack(
+                [self.parametric_boundary(t, type), other.parametric_boundary(t, type)]
+            )
+
+        def get_bbox():
+            return self.merge_bbox(self.get_bbox(), other.get_bbox())
+
+        obj.within_boundary = within_boundary
+        obj.parametric_boundary = parametric_boundary
+        obj.get_bbox = get_bbox
+        return obj
 
 
 class Circle(Plane):

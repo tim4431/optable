@@ -189,7 +189,7 @@ class OpticalComponent(Vector):
                     self.origin[1],
                     normal[0],
                     normal[1],
-                    color="red",
+                    color=color,
                     scale=1,
                     scale_units="xy",
                 )
@@ -231,6 +231,36 @@ class OpticalComponent(Vector):
                     for local_ray in local_rays_after_interaction
                 ]
                 return t, [truncted_ray] + lab_rays_after_interaction
+
+    def patch_block(self, width, height):
+        obj = Block(self.origin, hole=self.surface, width=width, height=height)
+        obj.transform_matrix = self.transform_matrix
+        return obj
+
+
+class Block(OpticalComponent):
+    def __init__(
+        self,
+        origin,
+        hole: Surface,
+        width: float = 1.0,
+        height: float = 1.0,
+        **kwargs,
+    ):
+        super().__init__(origin, **kwargs)
+        self.width = width
+        self.height = height
+        self.surface = Rectangle(width, height).subtract(hole)
+        self._edge_color = "black"
+
+    def interact_local(self, ray):
+        return []  # every ray is absorbed
+
+    def render(self, ax, type: str, **kwargs):
+        super().render(ax, type, color=self._edge_color, **kwargs)
+
+    def get_bbox(self):
+        return self.surface.get_bbox()
 
 
 class BaseMirror(OpticalComponent):

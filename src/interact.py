@@ -1,6 +1,6 @@
 import argparse, time, numpy as np, os
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider
+from matplotlib.widgets import Slider, CheckButtons
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from scipy.optimize import minimize
 
@@ -56,14 +56,15 @@ class InteractiveOpticalTable:
         exec(self.expsetup_code, self.namespace)
         self.table = self.namespace["table"]
 
+    def _get_slider_ax(self, i):
+        return self.fig.add_axes(
+            [0.8, 0.8 * (1 - i / 20), 0.1, 0.03], facecolor="lightgoldenrodyellow"
+        )
+
     def create_sliders(self):
         sliders = {}
-        slider_positions = [i / 20 for i in range(len(self.tunable_vars_setting))]
         for i, (name, param_range) in enumerate(self.tunable_vars_setting.items()):
-            slider_ax = self.fig.add_axes(
-                [0.8, 0.8 * (1 - slider_positions[i]), 0.1, 0.03],
-                facecolor="lightgoldenrodyellow",
-            )
+            slider_ax = self._get_slider_ax(i)
             val, min_val, max_val = param_range
             sliders[name] = Slider(
                 slider_ax,
@@ -96,6 +97,40 @@ class InteractiveOpticalTable:
 
         for slider in sliders.values():
             slider.on_changed(update)
+
+        checkbox_ax = self.fig.add_axes([0.78, 0.05, 0.15, 0.12])
+        finetune_checkbox = CheckButtons(checkbox_ax, ["Fine-tune"], [False])
+
+        def toggle_finetune(whatever):
+            # print("Fine-tune")
+            for i, (name, param_range) in enumerate(self.tunable_vars_setting.items()):
+                # print(name, param_range)
+                slider = sliders[name]
+                current_val = slider.val
+                # print(current_val)
+                _, min_val, max_val = param_range
+                range_val = max_val - min_val
+                if finetune_checkbox.get_status()[0]:
+                    new_valmin = current_val - range_val / 20
+                    new_valmax = current_val + range_val / 20
+                else:
+                    new_valmin = min_val
+                    new_valmax = max_val
+                #
+                slider.disconnect_events()
+                slider.ax.remove()
+                slider_newax = self._get_slider_ax(i)
+                sliders[name] = Slider(
+                    slider_newax,
+                    name,
+                    new_valmin,
+                    new_valmax,
+                    valinit=current_val,
+                )
+                sliders[name].on_changed(update)
+                self.fig.canvas.draw_idle()
+
+        finetune_checkbox.on_clicked(toggle_finetune)
 
         plt.show()
 

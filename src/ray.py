@@ -1,6 +1,6 @@
 from base import *
 
-RAY_NONE_LENGTH = 60
+RAY_NONE_LENGTH = 50
 
 
 class Ray(Vector):
@@ -154,22 +154,19 @@ class Ray(Vector):
             gaussian_beam = kwargs.get("gaussian_beam", False)
             if gaussian_beam:
                 t = np.linspace(0, length, 50)
-                x = self.origin[0] + t * self.direction[0]
-                y = self.origin[1] + t * self.direction[1]
-                spots = self.spot_size(t)
+                vx, vy = self.direction[0], self.direction[1]
+                x = self.origin[0] + t * vx
+                y = self.origin[1] + t * vy
                 spot_size_scale = kwargs.get("spot_size_scale", 1.0)
-                spots = spot_size_scale * spots
-                pts = np.array([x, y]).T.reshape(-1, 1, 2)
-                segments = np.concatenate([pts[:-1], pts[1:]], axis=1)
-                from matplotlib.collections import LineCollection
-
-                # Create a LineCollection with varying widths
-                lc = LineCollection(
-                    segments, linewidths=spots, alpha=alpha / 2, color="red"
+                spots_size = self.spot_size(t) * spot_size_scale
+                # create paths of polygon and fill it
+                pts_x = np.concatenate(
+                    [x + spots_size * (-vy), x[::-1] + spots_size[::-1] * (vy)]
                 )
-                # lc.set_array(t)  # Optional: Use t to colorize the line
-
-                ax.add_collection(lc)
+                pts_y = np.concatenate(
+                    [y + spots_size * vx, y[::-1] + spots_size[::-1] * (-vx)]
+                )
+                ax.fill(pts_x, pts_y, color="red", alpha=alpha / 2, ec=None)
 
         elif type == "3D":
             # Determine the start and end points of the ray

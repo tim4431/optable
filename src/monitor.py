@@ -29,7 +29,8 @@ class Monitor(OpticalComponent):
             local_ray = self.to_local_coordinates(r)
             P, t = self.intersect_point_local(local_ray)
             if P is not None:
-                Pts.append((P, local_ray.intensity))
+                spot_size = r.spot_size(t) if r.qo is not None else 0
+                Pts.append((P, local_ray.intensity, spot_size))
         self.data.extend(Pts)
 
     def _get_hist_y(self):
@@ -79,12 +80,16 @@ class Monitor(OpticalComponent):
     def render_scatter(self, ax, **kwargs):
         if len(self.data) == 0:
             return
-        yList = [data[0][1] for data in self.data]
-        zList = [data[0][2] for data in self.data]
-        IList = [data[1] for data in self.data]
-        ax.scatter(
-            yList, zList, marker="+", alpha=np.clip(IList, 0.1, 1), c="blue", **kwargs
-        )
+        yList = np.array([data[0][1] for data in self.data])
+        zList = np.array([data[0][2] for data in self.data])
+        IList = np.array([data[1] for data in self.data])
+        alpha = np.clip(IList, 0.1, 1)
+        ax.scatter(yList, zList, marker="+", alpha=alpha, c="blue")
+        spot_size_scale = kwargs.get("spot_size_scale", 1.0)
+        spotsizeList = np.array([data[2] for data in self.data]) * spot_size_scale
+        for spotsize, y, z, a in zip(spotsizeList, yList, zList, alpha):
+            circle = plt.Circle((y, z), spotsize, color="red", alpha=a / 2, ec=None)
+            ax.add_artist(circle)
         ax.set_xlim(-self.width / 2, self.width / 2)
         ax.set_ylim(-self.height / 2, self.height / 2)
         ax.set_xlabel("Y")

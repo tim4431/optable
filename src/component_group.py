@@ -114,8 +114,8 @@ class MLA(ComponentGroup):
         #
         for i in range(nz):
             for j in range(ny):
-                z = i * pitch
-                y = j * pitch
+                z = (i - (nz - 1) / 2) * pitch
+                y = (j - (ny - 1) / 2) * pitch
                 o = np.array([0, y, z]) + self.origin
-                lens = Lens(o, focal_length=focal_length, radius=radius)
+                lens = Lens(origin=o, focal_length=focal_length, radius=radius)
                 self.add_component(lens)
