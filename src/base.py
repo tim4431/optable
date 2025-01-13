@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 
 class Base:
     def __init__(self, **kwargs):
-        self._id = id(self)
+        if not hasattr(self, "_id"):
+            self._id = id(self)  # when a ray copy is made, the id will be inherited
         for key, value in kwargs.items():
             setattr(self, key, value)
 

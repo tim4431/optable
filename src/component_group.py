@@ -60,21 +60,24 @@ class ComponentGroup(OpticalComponent):
         else:
             return None, None
 
+    def add_component(self, component):
+        self.components.append(component)
+
 
 class GlassSlab(ComponentGroup):
     def __init__(
         self,
         origin,
-        width,
-        height,
-        thickness,
-        n1,
-        n2,
+        width=1.0,
+        height=1.0,
+        thickness=1.0,
+        n1=1.0,
+        n2=1.5,
         reflectivity=0,
-        transmission=0,
+        transmission=1,
     ):
         super().__init__(origin)
-        self.components.append(
+        self.add_component(
             SquareRefractive(
                 origin + np.array([+thickness / 2, 0, 0]),
                 width,
@@ -85,7 +88,7 @@ class GlassSlab(ComponentGroup):
                 transmission=transmission,
             )
         )
-        self.components.append(
+        self.add_component(
             SquareRefractive(
                 origin + np.array([-thickness / 2, 0, 0]),
                 width,
@@ -96,17 +99,6 @@ class GlassSlab(ComponentGroup):
                 transmission=transmission,
             )
         )
-
-
-def MLA(o, pitch, f, r, N) -> List[Lens]:
-    """
-    Micro-lens array
-    - o: origin of the first lens
-    - pitch: pitch
-    - f: focal length
-    - r: radius of the lens
-    - N: number of lenses (int/tuple)
-    """
 
 
 class MLA(ComponentGroup):
@@ -122,8 +114,8 @@ class MLA(ComponentGroup):
         #
         for i in range(nz):
             for j in range(ny):
-                z = i * pitch
-                y = j * pitch
+                z = (i - (nz - 1) / 2) * pitch
+                y = (j - (ny - 1) / 2) * pitch
                 o = np.array([0, y, z]) + self.origin
-                lens = Lens(o, focal_length=focal_length, radius=radius)
-                self.components.append(lens)
+                lens = Lens(origin=o, focal_length=focal_length, radius=radius)
+                self.add_component(lens)
