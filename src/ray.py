@@ -167,6 +167,16 @@ class Ray(Vector):
                     [y + spots_size * vx, y[::-1] + spots_size[::-1] * (-vx)]
                 )
                 ax.fill(pts_x, pts_y, color="red", alpha=alpha / 2, ec=None)
+                #
+                z_to_waist = -self.distance_to_waist(self.qo)
+                if 0 < z_to_waist < length:
+                    ax.scatter(
+                        self.origin[0] + z_to_waist * vx,
+                        self.origin[1] + z_to_waist * vy,
+                        marker=".",
+                        color="black",
+                        alpha=alpha,
+                    )
 
         elif type == "3D":
             # Determine the start and end points of the ray

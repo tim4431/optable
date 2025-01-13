@@ -282,22 +282,25 @@ class BaseMirror(OpticalComponent):
         normal = self.surface.normal(P)
         #
         rays = []
-        reflected_direction = ray.direction - 2 * np.dot(ray.direction, normal) * normal
         qo = None if ray.qo is None else ray.q_at_z(t)
-        # reflected_ray = Ray(
-        #     P,
-        #     reflected_direction,
-        #     ray.intensity * self.reflectivity,
-        #     _id=ray._id,
-        #     qo=qo,
-        # )
-        reflected_ray = ray.copy(
-            origin=P,
-            direction=reflected_direction,
-            intensity=ray.intensity * self.reflectivity,
-            qo=qo,
-        )
-        rays.append(reflected_ray)
+        if self.reflectivity > 0:
+            reflected_direction = (
+                ray.direction - 2 * np.dot(ray.direction, normal) * normal
+            )
+            # reflected_ray = Ray(
+            #     P,
+            #     reflected_direction,
+            #     ray.intensity * self.reflectivity,
+            #     _id=ray._id,
+            #     qo=qo,
+            # )
+            reflected_ray = ray.copy(
+                origin=P,
+                direction=reflected_direction,
+                intensity=ray.intensity * self.reflectivity,
+                qo=qo,
+            )
+            rays.append(reflected_ray)
         if self.transmission > 0:
             # transmitted_ray = Ray(
             #     P, ray.direction, ray.intensity * self.transmission, _id=ray._id, qo=qo

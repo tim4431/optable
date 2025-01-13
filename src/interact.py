@@ -30,7 +30,7 @@ class InteractiveOpticalTable:
 
     def _create_axes(self):
         self.fig = plt.figure(figsize=(12, 6))
-        self.gs = GridSpec(1, 2, width_ratios=[3, 1])
+        self.gs = GridSpec(1, 2, width_ratios=[2.5, 1])
         self.ax0 = plt.subplot(self.gs[0])
         self.gs1 = GridSpecFromSubplotSpec(3, 1, subplot_spec=self.gs[1], hspace=0.3)
         self.ax1 = [plt.subplot(self.gs1[i]) for i in range(3)]
@@ -111,8 +111,8 @@ class InteractiveOpticalTable:
                 _, min_val, max_val = param_range
                 range_val = max_val - min_val
                 if finetune_checkbox.get_status()[0]:
-                    new_valmin = current_val - range_val / 20
-                    new_valmax = current_val + range_val / 20
+                    new_valmin = current_val - range_val / 30
+                    new_valmax = current_val + range_val / 30
                 else:
                     new_valmin = min_val
                     new_valmax = max_val
