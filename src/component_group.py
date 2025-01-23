@@ -20,6 +20,7 @@ class ComponentGroup(OpticalComponent):
         return f"ComponentGroup(origin={self.origin}, transform_matrix={self.transform_matrix})"
 
     def _RotAroundLocal(self, axis, localpoint, theta):
+        # Note that localpoint is in the local coord, and origins are all in lab coord
         R = self.R(axis, theta)
         localpoint = np.array(localpoint)
         self.transform_matrix = np.dot(R, self.transform_matrix)
@@ -27,7 +28,7 @@ class ComponentGroup(OpticalComponent):
         self.origin = self.origin + np.dot(R, -localpoint) + localpoint
         #
         for component in self.components:
-            lp = -(component.origin - old_origin)
+            lp = -(component.origin - (old_origin + localpoint))
             component._RotAroundLocal(axis, lp, theta)
         return self
 
@@ -62,6 +63,9 @@ class ComponentGroup(OpticalComponent):
 
     def add_component(self, component):
         self.components.append(component)
+
+    def add_components(self, components):
+        self.components.extend(components)
 
 
 class GlassSlab(ComponentGroup):

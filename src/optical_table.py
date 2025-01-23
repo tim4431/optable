@@ -123,7 +123,8 @@ class OpticalTable:
             for monitor in self.monitors:
                 if monitor._id not in self.norender_set:
                     monitor.render(ax, type="Z", **kwargs)
-            ax.set_aspect("equal")
+            # ax.set_aspect("equal")
+            ax.set_aspect("auto")
         elif type == "3D":
             if ax is None:
                 fig = plt.figure(figsize=(10, 8))
@@ -149,4 +150,5 @@ class OpticalTable:
             ax.set_ylim(roi[2], roi[3])
             if ax.name == "3d":
                 ax.set_zlim(roi[4], roi[5])
-            ax.set_aspect("equal")
+            aspect = kwargs.get("aspect", "equal")
+            ax.set_aspect(aspect)

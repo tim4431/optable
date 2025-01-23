@@ -153,7 +153,7 @@ class Ray(Vector):
 
             gaussian_beam = kwargs.get("gaussian_beam", False)
             if gaussian_beam:
-                t = np.linspace(0, length, 50)
+                t = np.linspace(0, length, 20)
                 vx, vy = self.direction[0], self.direction[1]
                 x = self.origin[0] + t * vx
                 y = self.origin[1] + t * vy
