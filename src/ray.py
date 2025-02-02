@@ -4,6 +4,42 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 _RAY_NONE_LENGTH = 50
 
 
+class GaussianBeam:
+    @staticmethod
+    def q_at_waist(w0, wl, n=1):
+        return (1j * n * np.pi * w0**2) / wl
+
+    @staticmethod
+    def q_at_z(qo, z):
+        return qo + z
+
+    @staticmethod
+    def distance_to_waist(q):
+        z = np.real(q)
+        return z
+
+    @staticmethod
+    def waist(q, wl, n=1):
+        w0 = np.sqrt((wl * np.imag(q)) / (n * np.pi))
+        return float(w0)
+
+    @staticmethod
+    def rayleigh_range(q):
+        zr = np.imag(q)
+        return float(zr)
+
+    @staticmethod
+    def radius_of_curvature(q):
+        R = 1 / np.real(1 / q)
+        return float(R)
+
+    @staticmethod
+    def spot_size(qo, z, wl, n=1):
+        q = qo + z
+        w = np.sqrt(-wl / (n * np.pi * np.imag(1 / q)))
+        return w
+
+
 class Ray(Vector):
     def __init__(
         self,
@@ -73,31 +109,25 @@ class Ray(Vector):
 
     # >>> Gaussian Beam Functions
     def q_at_waist(self, w0):
-        return (1j * np.pi * w0**2) / self.wavelength
+        return GaussianBeam.q_at_waist(w0, self.wavelength, self.n)
 
     def q_at_z(self, z):
-        return self.qo + z
+        return GaussianBeam.q_at_z(self.qo, z)
 
     def distance_to_waist(self, q):
-        z = np.real(q)
-        return z
+        return GaussianBeam.distance_to_waist(q)
 
     def waist(self, q):
-        w0 = np.sqrt((self.wavelength * np.imag(q)) / (self.n * np.pi))
-        return float(w0)
+        return GaussianBeam.waist(q, self.wavelength, self.n)
 
     def rayleigh_range(self, q):
-        zr = np.imag(q)
-        return float(zr)
+        return GaussianBeam.rayleigh_range(q)
 
     def radius_of_curvature(self, q):
-        R = 1 / np.real(1 / q)
-        return float(R)
+        return GaussianBeam.radius_of_curvature(q)
 
     def spot_size(self, z):
-        q = self.q_at_z(z)
-        w = np.sqrt(-self.wavelength / (self.n * np.pi * np.imag(1 / q)))
-        return w
+        return GaussianBeam.spot_size(self.qo, z, self.wavelength, self.n)
 
     def Propagate(self, z):
         return self.copy(qo=self.q_at_z(z))
