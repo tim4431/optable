@@ -15,11 +15,13 @@ class ComponentGroup(OpticalComponent):
             None,
         )  # xmin, xmax, ymin, ymax, zmin, zmax
         self.components = []
+        self.monitors = []
 
     def __repr__(self):
         return f"ComponentGroup(origin={self.origin}, transform_matrix={self.transform_matrix})"
 
     def _RotAroundLocal(self, axis, localpoint, theta):
+        # Note that localpoint is in the local coord, and origins are all in lab coord
         R = self.R(axis, theta)
         localpoint = np.array(localpoint)
         self.transform_matrix = np.dot(R, self.transform_matrix)
@@ -27,8 +29,11 @@ class ComponentGroup(OpticalComponent):
         self.origin = self.origin + np.dot(R, -localpoint) + localpoint
         #
         for component in self.components:
-            lp = -(component.origin - old_origin)
+            lp = -(component.origin - (old_origin + localpoint))
             component._RotAroundLocal(axis, lp, theta)
+        for monitor in self.monitors:
+            lp = -(monitor.origin - (old_origin + localpoint))
+            monitor._RotAroundLocal(axis, lp, theta)
         return self
 
     def _RotAroundCenter(self, axis, theta):
@@ -38,6 +43,8 @@ class ComponentGroup(OpticalComponent):
         self.origin += np.array(direction) * distance
         for component in self.components:
             component._Translate(direction, distance)
+        for monitor in self.monitors:
+            monitor._Translate(direction, distance)
         return self
 
     def render(self, ax, type: str, **kwargs):
@@ -62,6 +69,15 @@ class ComponentGroup(OpticalComponent):
 
     def add_component(self, component):
         self.components.append(component)
+
+    def add_components(self, components):
+        self.components.extend(components)
+
+    def add_monitor(self, monitor):
+        self.monitors.append(monitor)
+
+    def add_monitors(self, monitors):
+        self.monitors.extend(monitors)
 
 
 class GlassSlab(ComponentGroup):

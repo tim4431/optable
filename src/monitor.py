@@ -95,3 +95,4 @@ class Monitor(OpticalComponent):
         ax.set_xlabel("Y")
         ax.set_ylabel("Z")
         ax.set_title(str(self.name))
+        ax.set_aspect("auto")

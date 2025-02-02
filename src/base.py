@@ -106,3 +106,65 @@ class Vector(Base):
 
     def TZ(self, dz):
         return self._Translate([0, 0, 1], dz)
+
+
+class Path:
+    def __init__(self, pts: List):
+        self.pts = [np.array(pt) for pt in pts]
+        self.pts.append(self.pts[0])  # close the path
+        self.accumulated_length = self._accumulate_length()
+        self.round_trip = self.accumulated_length[-1]
+
+    def _accumulate_length(self):
+        accum_length = [0]
+        length = 0
+        for i in range(1, len(self.pts)):
+            length += np.linalg.norm(np.array(self.pts[i]) - np.array(self.pts[i - 1]))
+            accum_length.append(length)
+        return accum_length
+
+    def _get_segment(self, l):
+        """get the segment index at the position l, from pts[i-1] to pts[i]"""
+        # map l into the range of round_trip
+        l = l % self.round_trip
+        # print(l)
+        for i in range(1, len(self.pts)):
+            if l <= self.accumulated_length[i]:
+                break
+        return i
+
+    def coord(self, l):
+        """calculate the coordinate at the position l"""
+        # calculate the coordinate
+        i = self._get_segment(l)
+        l0 = self.accumulated_length[i - 1]
+        l1 = self.accumulated_length[i]
+        # print(i)
+        ratio = (l - l0) / (l1 - l0)
+        pt0 = np.array(self.pts[i - 1])
+        # print(pt0)
+        pt1 = np.array(self.pts[i])
+        # print(pt1)
+        # print(ratio)
+        return pt0 + (pt1 - pt0) * ratio
+
+    def direction(self, l):
+        i = self._get_segment(l)
+        pt0 = np.array(self.pts[i - 1])
+        pt1 = np.array(self.pts[i])
+        return np.linalg.norm(pt1 - pt0)
+
+    def rotz_theta(self, l):
+        direction = self.direction(l)
+        return np.arctan2(direction[1], direction[0])
+
+    def bbox(self):
+        x = [pt[0] for pt in self.pts]
+        y = [pt[1] for pt in self.pts]
+        return (min(x) - 0.3, max(x) + 0.3, min(y) - 0.3, max(y) + 0.3)
+
+
+# path = Path([[0, 0], [1, 0], [1, 1], [0, 1]])
+# print(path.round_trip)
+# # print(path.calc_coord(0.5))
+# print(path.coord(-0.5))

@@ -1,6 +1,6 @@
 import argparse, time, numpy as np, os
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider, CheckButtons
+from matplotlib.widgets import Slider, CheckButtons, RadioButtons
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from scipy.optimize import minimize
 
@@ -54,29 +54,40 @@ class InteractiveOpticalTable:
         for key, value in params.items():
             self.namespace[key] = value
         exec(self.expsetup_code, self.namespace)
-        self.table = self.namespace["table"]
+        # print("Updated table with new parameters.")
+        # self.table = self.namespace["table"]
 
     def _get_slider_ax(self, i):
-        return self.fig.add_axes(
-            [0.8, 0.8 * (1 - i / 20), 0.1, 0.03], facecolor="lightgoldenrodyellow"
-        )
+        return self.fig.add_axes([0.8, 0.95 * (1 - i / 25), 0.1, 0.03])
 
     def create_sliders(self):
         sliders = {}
         for i, (name, param_range) in enumerate(self.tunable_vars_setting.items()):
             slider_ax = self._get_slider_ax(i)
             val, min_val, max_val = param_range
-            sliders[name] = Slider(
-                slider_ax,
-                name,
-                min_val,
-                max_val,
-                valinit=val,
-            )
+            if (min_val is None) and (max_val is None):
+                # binary variable
+                current_val = bool(val)
+                sliders[name] = CheckButtons(slider_ax, [name], [current_val])
+            else:
+                sliders[name] = Slider(
+                    slider_ax,
+                    name,
+                    min_val,
+                    max_val,
+                    valinit=val,
+                )
         return sliders
 
     def _sliders_to_params(self, sliders):
-        return {name: sliders[name].val for name in self.tunable_vars_setting}
+        # return {name: sliders[name].val for name in self.tunable_vars_setting}
+        params = {}
+        for name, slider in sliders.items():
+            if isinstance(slider, Slider):
+                params[name] = slider.val
+            elif isinstance(slider, CheckButtons):
+                params[name] = slider.get_status()[0]
+        return params
 
     def slider_interactive(self, plot_type="Z"):
         """
@@ -91,18 +102,40 @@ class InteractiveOpticalTable:
                 self._clear_axes()
 
                 params = self._sliders_to_params(sliders)
+                # print(params)
                 self.update_table(**params)
                 if self.render:
                     plt.draw()
 
         for slider in sliders.values():
-            slider.on_changed(update)
+            # slider.on_changed(update)
+            if isinstance(slider, Slider):
+                slider.on_changed(update)
+            elif isinstance(slider, CheckButtons):
+                slider.on_clicked(update)
 
-        checkbox_ax = self.fig.add_axes([0.78, 0.05, 0.15, 0.12])
-        finetune_checkbox = CheckButtons(checkbox_ax, ["Fine-tune"], [False])
+        # checkbox_x10_ax = self.fig.add_axes([0.78, 0.05, 0.15, 0.12])
+        # finetune_checkbox_x10 = CheckButtons(
+        #     checkbox_x10_ax, ["Fine-tune x10"], [False]
+        # )
+        # checkbox_x100_ax = self.fig.add_axes([0.78, 0.2, 0.15, 0.12])
+        # finetune_checkbox_x100 = CheckButtons(
+        #     checkbox_x100_ax, ["Fine-tune x100"], [False]
+        # )
+        finetune_multiplier_ax = self.fig.add_axes([0.78, 0.03, 0.15, 0.12])
+        finetune_multiplier = RadioButtons(
+            finetune_multiplier_ax,
+            ["x1", "x10", "x100"],
+            active=0,
+            radio_props={"s": [50, 50, 50]},
+        )
+        finetune_multiplier_ax.spines["top"].set_visible(False)
+        finetune_multiplier_ax.spines["right"].set_visible(False)
+        finetune_multiplier_ax.spines["left"].set_visible(False)
+        finetune_multiplier_ax.spines["bottom"].set_visible(False)
+        self.fig.text(0.78, 0.16, "Finetune Multiplier", fontsize=12, weight="bold")
 
-        def toggle_finetune(whatever):
-            # print("Fine-tune")
+        def toggle_finetune(label):
             for i, (name, param_range) in enumerate(self.tunable_vars_setting.items()):
                 # print(name, param_range)
                 slider = sliders[name]
@@ -110,12 +143,15 @@ class InteractiveOpticalTable:
                 # print(current_val)
                 _, min_val, max_val = param_range
                 range_val = max_val - min_val
-                if finetune_checkbox.get_status()[0]:
-                    new_valmin = current_val - range_val / 30
-                    new_valmax = current_val + range_val / 30
-                else:
+                if label == "x1":
                     new_valmin = min_val
                     new_valmax = max_val
+                elif label == "x10":
+                    new_valmin = max(current_val - range_val / 10, min_val)
+                    new_valmax = min(current_val + range_val / 10, max_val)
+                elif label == "x100":
+                    new_valmin = max(current_val - range_val / 100, min_val)
+                    new_valmax = min(current_val + range_val / 100, max_val)
                 #
                 slider.disconnect_events()
                 slider.ax.remove()
@@ -130,7 +166,7 @@ class InteractiveOpticalTable:
                 sliders[name].on_changed(update)
                 self.fig.canvas.draw_idle()
 
-        finetune_checkbox.on_clicked(toggle_finetune)
+        finetune_multiplier.on_clicked(toggle_finetune)
 
         plt.show()
 
@@ -172,7 +208,7 @@ class InteractiveOpticalTable:
 
 
 if __name__ == "__main__":
-    FILE_NAME = os.path.join(os.path.dirname(__file__), "../demo", "vipa_rect.py")
+    FILE_NAME = os.path.join(os.path.dirname(__file__), "../demo", "vipa_1st.py")
     MODE = "interact"
     # MODE = "optimize"
     interactive_table = InteractiveOpticalTable(fileName=FILE_NAME)
