@@ -1,8 +1,7 @@
-import scipy.optimize
-from base import *
-from ray import *
-from surfaces import *
 import scipy
+from .base import *
+from .ray import *
+from .surfaces import *
 
 
 class OpticalComponent(Vector):

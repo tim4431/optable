@@ -1,7 +1,7 @@
-from base import *
+from .base import *
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-RAY_NONE_LENGTH = 50
+_RAY_NONE_LENGTH = 50
 
 
 class Ray(Vector):
@@ -136,7 +136,7 @@ class Ray(Vector):
         color = kwargs.get("color", "black")
         linewidth = kwargs.get("linewidth", 0.5)
         alpha = max(0.1, min(1.0, self.intensity))
-        length = self.length if self.length else RAY_NONE_LENGTH
+        length = self.length if self.length else _RAY_NONE_LENGTH
 
         #
         if type == "Z":

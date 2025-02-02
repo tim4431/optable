@@ -1,4 +1,4 @@
-from optical_component import *
+from .optical_component import *
 
 
 class Monitor(OpticalComponent):

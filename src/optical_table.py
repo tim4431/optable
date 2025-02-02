@@ -1,5 +1,5 @@
-from optical_component import *
-from monitor import *
+from .optical_component import *
+from .monitor import *
 import matplotlib.pyplot as plt
 import numpy as np, time
 
