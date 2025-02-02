@@ -6,7 +6,10 @@ from optical_table import OpticalTable
 from component_group import GlassSlab
 
 if __name__ == "__main__":
-    fig, ax0 = plt.subplots(1, 1, figsize=(12, 6))
+    # fig, ax0 = plt.subplots(1, 1, figsize=(12, 6))
+    # 3d
+    fig = plt.figure(figsize=(12, 6))
+    ax0 = fig.add_subplot(111, projection="3d")
 
 
 wl = 780e-9
@@ -42,13 +45,15 @@ table.ray_tracing(rays)
 # ax0.annotate(mon0.ndata, (mon0.origin[0], mon0.origin[1]), fontsize=15, color="black")
 table.render(
     ax0,
-    type="Z",
+    # type="Z",
+    type="3D",
     gaussian_beam=True,
     spot_size_scale=1,
-    roi=[-15, 30, -10, 20],
+    # roi=[-15, 30, -10, 20],
+    roi=[-15, 30, -10, 20, -10, 10],
 )
 
 if __name__ == "__main__":
     # plt.axis("off")
-    plt.savefig("../docs/gaussian_beam.png", dpi=300, bbox_inches="tight")
+    plt.savefig("../docs/gaussian_beam_3d.png", dpi=300, bbox_inches="tight")
     plt.show()

@@ -1,4 +1,5 @@
 from base import *
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 RAY_NONE_LENGTH = 50
 
@@ -46,6 +47,18 @@ class Ray(Vector):
     def direction(self, direction):
         self._direction = self._normalize_vector(direction)
 
+    @property
+    def tangent_1(self):
+        n = self.direction
+        if n[0] == 0 and n[1] == 0:
+            return np.array([1, 0, 0])
+        else:
+            return self._normalize_vector(np.cross(n, np.array([0, 0, 1])))
+
+    @property
+    def tangent_2(self):
+        return self._normalize_vector(np.cross(self.direction, self.tangent_1))
+
     def _RotAroundCenter(self, axis, theta):
         R = self.R(axis, theta)
         self.direction = np.dot(R, self.direction)
@@ -88,6 +101,21 @@ class Ray(Vector):
 
     def Propagate(self, z):
         return self.copy(qo=self.q_at_z(z))
+
+    def _render_sampling(self, length, num_points=10):
+        z_to_waist = -self.distance_to_waist(self.qo)
+        # waist is not in the ray path, linear sampling
+        if z_to_waist < 0 or (z_to_waist > length):
+            return np.linspace(0, length, num_points)
+        # waist is in the ray path, non-linear sampling
+        else:
+            # sample at [-2,-1,0,1,2] of zR, adding start and end points
+            # if some sampling points is not in [start, end], remove it
+            t = z_to_waist + self.rayleigh_range(self.qo) * np.array([-2, -1, 0, 1, 2])
+            t = list(t[(t >= 0) & (t <= length)])
+            t.append(0)
+            t.append(length)
+            return np.sort(np.array(t))
 
     # <<< Gaussian Beam Functions
 
@@ -153,7 +181,7 @@ class Ray(Vector):
 
             gaussian_beam = kwargs.get("gaussian_beam", False)
             if gaussian_beam:
-                t = np.linspace(0, length, 20)
+                t = self._render_sampling(length, num_points=20)
                 vx, vy = self.direction[0], self.direction[1]
                 x = self.origin[0] + t * vx
                 y = self.origin[1] + t * vy
@@ -211,3 +239,64 @@ class Ray(Vector):
                     color=color,
                     alpha=alpha,
                 )
+
+            gaussian_beam = kwargs.get("gaussian_beam", False)
+            if gaussian_beam:
+                vx, vy, vz = self.direction[0], self.direction[1], self.direction[2]
+                z_to_waist = -self.distance_to_waist(self.qo)
+
+                # Discrete z positions for the contour circles
+                t = self._render_sampling(length, num_points=10)
+                n_vertices = 6  # Number of vertices per circle (polygon approximation)
+
+                # Compute the contour circles and store them in a list.
+                circles = []
+                spot_size_scale = kwargs.get("spot_size_scale", 1.0)
+                spots_size = self.spot_size(t) * spot_size_scale
+                for t, w in zip(t, spots_size):
+                    theta = np.linspace(0, 2 * np.pi, n_vertices, endpoint=False)
+                    center_pt = self.origin + t * self.direction
+                    surface_pt = (
+                        center_pt[
+                            :, np.newaxis
+                        ]  # Reshape center_pt to (3,1) for broadcasting
+                        + w
+                        * self.tangent_1[:, np.newaxis]
+                        * np.cos(theta)  # Shape (3, n_vertices)
+                        + w
+                        * self.tangent_2[:, np.newaxis]
+                        * np.sin(theta)  # Shape (3, n_vertices)
+                    )
+                    circle = surface_pt.T  # Transpose to get (n_vertices, 3) shape
+                    # print(circle.shape)
+                    # circle = np.column_stack((x, y, z))
+                    circles.append(circle)
+
+                # Create side surfaces connecting adjacent circles.
+                faces = []
+                for i in range(len(circles) - 1):
+                    c1 = circles[i]
+                    c2 = circles[i + 1]
+                    for j in range(n_vertices):
+                        # Wrap around to the first vertex when j is the last index.
+                        j_next = (j + 1) % n_vertices
+                        # Define the quadrilateral face with 4 vertices:
+                        face = [c1[j], c1[j_next], c2[j_next], c2[j]]
+                        faces.append(face)
+
+                # Create a Poly3DCollection for the side surfaces.
+                side_collection = Poly3DCollection(
+                    faces, facecolors="red", edgecolors=None, alpha=alpha / 2
+                )
+                ax.add_collection3d(side_collection)
+
+                # draw a point at the waist position.`
+                # print(self.origin, self.direction, z_to_waist)
+                if 0 < z_to_waist < length:
+                    ax.scatter(
+                        self.origin[0] + z_to_waist * vx,
+                        self.origin[1] + z_to_waist * vy,
+                        self.origin[2] + z_to_waist * vz,
+                        color="black",
+                        alpha=alpha,
+                    )

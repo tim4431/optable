@@ -58,7 +58,7 @@ class InteractiveOpticalTable:
         # self.table = self.namespace["table"]
 
     def _get_slider_ax(self, i):
-        return self.fig.add_axes([0.8, 0.8 * (1 - i / 20), 0.1, 0.03])
+        return self.fig.add_axes([0.8, 0.95 * (1 - i / 25), 0.1, 0.03])
 
     def create_sliders(self):
         sliders = {}

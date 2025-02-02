@@ -31,7 +31,7 @@ class OpticalTable:
                 elif isinstance(m, list):
                     self.monitors.extend(m)
 
-    def ray_tracing(self, rays: Union[Ray, List[Ray]]):
+    def ray_tracing(self, rays: Union[Ray, List[Ray]], perfomance_limit=None):
         """
         Perform ray tracing simulation.
 
@@ -41,7 +41,9 @@ class OpticalTable:
         if isinstance(rays, Ray):
             rays = [rays]
         for ray in rays:
-            rays_traced = self._single_ray_tracing(ray)
+            rays_traced = self._single_ray_tracing(
+                ray, perfomance_limit=perfomance_limit
+            )
             self.rays.extend(rays_traced)
         #
         return copy.deepcopy(self.rays)
@@ -54,10 +56,9 @@ class OpticalTable:
         exit_flag = False
         t_start = time.time()
         trace_num = 0
-        if perfomance_limit is None:
-            MAX_TRACEING_TIME = 0.3
-            MAX_TRACE_NUM = 500
-        else:
+        MAX_TRACEING_TIME = 0.5
+        MAX_TRACE_NUM = 500
+        if perfomance_limit is not None:
             if "max_trace_time" in perfomance_limit:
                 MAX_TRACEING_TIME = perfomance_limit["max_trace_time"]
             if "max_trace_num" in perfomance_limit:
