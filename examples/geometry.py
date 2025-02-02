@@ -1,8 +1,7 @@
 import numpy as np, sys, matplotlib.pyplot as plt
 
-sys.path.append("../src/")
-from optical_component import *
-from optical_table import OpticalTable
+sys.path.append("../")
+from src import *
 
 if __name__ == "__main__":
     fig = plt.figure(figsize=(12, 6))

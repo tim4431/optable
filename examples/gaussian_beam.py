@@ -1,9 +1,7 @@
 import numpy as np, sys, matplotlib.pyplot as plt
 
-sys.path.append("../src/")
-from optical_component import *
-from optical_table import OpticalTable
-from component_group import GlassSlab
+sys.path.append("../")
+from src import *
 
 if __name__ == "__main__":
     # fig, ax0 = plt.subplots(1, 1, figsize=(12, 6))
