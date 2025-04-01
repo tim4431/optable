@@ -17,6 +17,7 @@ class OpticalComponent(Vector):
             None,
             None,
         )  # xmin, xmax, ymin, ymax, zmin, zmax
+        self.render_comp_vec = kwargs.get("render_comp_vec", False)
 
     def __repr__(self):
         return f"OpticalComponent(origin={self.origin}, transform_matrix=\n{self.transform_matrix})"
@@ -179,8 +180,7 @@ class OpticalComponent(Vector):
                 color=color,
                 linewidth=linewidth,
             )
-            comp_vec = kwargs.get("comp_vec", False)
-            if comp_vec:
+            if self.render_comp_vec:
                 # add a component vector (red)
                 normal = self.normal
                 ax.quiver(
@@ -189,7 +189,7 @@ class OpticalComponent(Vector):
                     normal[0],
                     normal[1],
                     color=color,
-                    scale=1,
+                    scale=2,
                     scale_units="xy",
                 )
 

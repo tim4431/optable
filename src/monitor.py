@@ -29,8 +29,9 @@ class Monitor(OpticalComponent):
             local_ray = self.to_local_coordinates(r)
             P, t = self.intersect_point_local(local_ray)
             if P is not None:
-                spot_size = r.spot_size(t) if r.qo is not None else 0
-                Pts.append((P, local_ray.intensity, spot_size))
+                # spot_size = r.spot_size(t) if r.qo is not None else 0
+                # Pts.append((P, local_ray.intensity, spot_size))
+                Pts.append((P, local_ray.intensity, t, r))
         self.data.extend(Pts)
 
     def _get_hist_y(self):
@@ -78,6 +79,8 @@ class Monitor(OpticalComponent):
             ax.set_ylabel("Z")
 
     def render_scatter(self, ax, **kwargs):
+        if hasattr(self, "name") and self.name is not None:
+            print(f"Rendering {self.name} with {self.ndata} data points")
         if len(self.data) == 0:
             return
         yList = np.array([data[0][1] for data in self.data])
@@ -85,14 +88,42 @@ class Monitor(OpticalComponent):
         IList = np.array([data[1] for data in self.data])
         alpha = np.clip(IList, 0.1, 1)
         ax.scatter(yList, zList, marker="+", alpha=alpha, c="blue")
-        spot_size_scale = kwargs.get("spot_size_scale", 1.0)
-        spotsizeList = np.array([data[2] for data in self.data]) * spot_size_scale
-        for spotsize, y, z, a in zip(spotsizeList, yList, zList, alpha):
-            circle = plt.Circle((y, z), spotsize, color="red", alpha=a / 2, ec=None)
-            ax.add_artist(circle)
+        #
+        gaussian_beam = kwargs.get("gaussian_beam", False)
+        if gaussian_beam:
+            spot_size_scale = kwargs.get("spot_size_scale", 1.0)
+            tList = np.array([data[2] for data in self.data])
+            rList = np.array([data[3] for data in self.data])
+            spotsizeList = (
+                np.array([r.spot_size(t) for r, t in zip(rList, tList)])
+                * spot_size_scale
+            )
+            waistList = (
+                np.array([r.waist(r.q_at_z(t)) for r, t in zip(rList, tList)])
+                * spot_size_scale
+            )
+            annote_spotsize = kwargs.get("annote_spotsize", False)
+            annote_waist = kwargs.get("annote_waist", False)
+            for spotsize, waist, y, z, a in zip(
+                spotsizeList, waistList, yList, zList, alpha
+            ):
+                circle = plt.Circle((y, z), spotsize, color="red", alpha=a / 2, ec=None)
+                ax.add_artist(circle)
+                if annote_spotsize:
+                    ax.text(y, z, f"sp={spotsize:.2e}", fontsize=8, color="black")
+                if annote_waist:
+                    ax.text(
+                        y,
+                        z + 0.1 * self.height,
+                        f"w0={waist:.2e}",
+                        fontsize=8,
+                        color="black",
+                    )
+
         ax.set_xlim(-self.width / 2, self.width / 2)
         ax.set_ylim(-self.height / 2, self.height / 2)
         ax.set_xlabel("Y")
         ax.set_ylabel("Z")
-        ax.set_title(str(self.name))
+        if hasattr(self, "name") and self.name is not None:
+            ax.set_title(str(self.name))
         ax.set_aspect("auto")

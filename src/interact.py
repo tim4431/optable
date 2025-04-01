@@ -208,7 +208,7 @@ class InteractiveOpticalTable:
 
 
 if __name__ == "__main__":
-    FILE_NAME = os.path.join(os.path.dirname(__file__), "../demo", "vipa_1st.py")
+    FILE_NAME = os.path.join(os.path.dirname(__file__), "../demo", "prism.py")
     MODE = "interact"
     # MODE = "optimize"
     interactive_table = InteractiveOpticalTable(fileName=FILE_NAME)

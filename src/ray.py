@@ -82,6 +82,7 @@ class Ray(Vector):
     @direction.setter
     def direction(self, direction):
         self._direction = self._normalize_vector(direction)
+        # print(self._direction)
 
     @property
     def tangent_1(self):

@@ -118,7 +118,7 @@ class GlassSlab(ComponentGroup):
 
 
 class MLA(ComponentGroup):
-    def __init__(self, origin, N, pitch, focal_length, radius):
+    def __init__(self, origin, N, pitch, focal_length, radius, focal_drift=0, **kwargs):
         super().__init__(origin)
         self.pitch = pitch
         self.focal_length = focal_length
@@ -133,5 +133,6 @@ class MLA(ComponentGroup):
                 z = (i - (nz - 1) / 2) * pitch
                 y = (j - (ny - 1) / 2) * pitch
                 o = np.array([0, y, z]) + self.origin
-                lens = Lens(origin=o, focal_length=focal_length, radius=radius)
+                f = focal_length * (1 + focal_drift * np.random.randn())
+                lens = Lens(origin=o, focal_length=f, radius=radius, **kwargs)
                 self.add_component(lens)

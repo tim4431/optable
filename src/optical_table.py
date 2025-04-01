@@ -56,7 +56,8 @@ class OpticalTable:
         exit_flag = False
         t_start = time.time()
         trace_num = 0
-        MAX_TRACEING_TIME = 0.5
+        # MAX_TRACEING_TIME = 0.5
+        MAX_TRACEING_TIME = 1e9
         MAX_TRACE_NUM = 500
         if perfomance_limit is not None:
             if "max_trace_time" in perfomance_limit:
