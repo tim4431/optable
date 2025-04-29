@@ -157,6 +157,7 @@ class OpticalComponent(Vector):
         points_global = (self.transform_matrix @ points_local) + self.origin.reshape(
             -1, 1
         )
+        # print(points_global)
         return points_global
 
     def render(self, ax, type: str, **kwargs):
@@ -201,6 +202,20 @@ class OpticalComponent(Vector):
                 color=color,
                 linewidth=linewidth,
             )
+            if self.render_comp_vec:
+                # add a component vector (red)
+                normal = self.normal
+                ax.quiver(
+                    self.origin[0],
+                    self.origin[1],
+                    self.origin[2],
+                    normal[0],
+                    normal[1],
+                    normal[2],
+                    color=color,
+                    scale=2,
+                    scale_units="xy",
+                )
         else:
             raise ValueError(f"render: Invalid type: {type}")
 
@@ -235,6 +250,22 @@ class OpticalComponent(Vector):
         obj = Block(self.origin, hole=self.surface, width=width, height=height)
         obj.transform_matrix = self.transform_matrix
         return obj
+
+
+class Nothing(OpticalComponent):
+    def __init__(self, origin, **kwargs):
+        super().__init__(origin, **kwargs)
+        self.surface = Plane()
+        self._edge_color = "black"
+
+    def interact_local(self, ray):
+        return [ray]  # every ray is transmitted
+
+    def render(self, ax, type: str, **kwargs):
+        super().render(ax, type, color=self._edge_color, **kwargs)
+
+    def get_bbox(self):
+        return self.surface.get_bbox()
 
 
 class Block(OpticalComponent):
@@ -380,6 +411,20 @@ class BaseRefraciveSurface(OpticalComponent):
                 n=n1,
             )
             rays.append(transmitted_ray)
+        else:
+            # total internal reflection
+            normal = -normal
+            reflected_direction = ray.direction + 2 * cos_theta_i * normal
+            # reflected_ray = Ray(
+            #     P, reflected_direction, ray.intensity * self.reflectivity, _id=ray._id
+            # )
+            reflected_ray = ray.copy(
+                origin=P,
+                direction=reflected_direction,
+                intensity=ray.intensity,
+                qo=qo,
+            )
+            rays.append(reflected_ray)
 
         #
         if self.reflectivity > 0:

@@ -9,6 +9,10 @@ class Surface(Base):
         super().__init__()
         self.planar = True  # True if the surface is planar
 
+    def _normalize_vector(self, vector) -> np.ndarray:
+        vec = np.array(vector, dtype=float)
+        return vec / np.linalg.norm(vec)
+
     def f(self, P: np.ndarray) -> float:
         """f(x,y,z) = 0"""
         raise NotImplementedError(
@@ -102,7 +106,7 @@ class Circle(Plane):
     def within_boundary(self, P: np.ndarray) -> bool:
         return np.linalg.norm(P) <= self.radius
 
-    def parametric_boundary(self, t: float, type: str) -> np.ndarray:
+    def parametric_boundary(self, t: Sequence[float], type: str) -> np.ndarray:
         if type == "Z":
             x = np.array([0, 0])
             y = np.array([-self.radius, self.radius])
@@ -128,7 +132,7 @@ class Rectangle(Plane):
     def within_boundary(self, P: np.ndarray) -> bool:
         return np.abs(P[1]) <= self.width / 2 and np.abs(P[2]) <= self.height / 2
 
-    def parametric_boundary(self, t: float, type: str) -> np.ndarray:
+    def parametric_boundary(self, t: Sequence[float], type: str) -> np.ndarray:
         if type == "Z":
             x = np.array([0, 0])
             y = np.array([-self.width / 2, self.width / 2])
@@ -191,7 +195,7 @@ class Cylinder(Surface):
             -self.height / 2 <= z <= self.height / 2
         )
 
-    def parametric_boundary(self, t: float, type: str) -> np.ndarray:
+    def parametric_boundary(self, t: Sequence[float], type: str) -> np.ndarray:
         if type == "Z":
             theta = self._theta(t)
             x = self.radius * np.cos(theta)
@@ -237,3 +241,148 @@ class Cylinder(Surface):
             -self.height / 2,
             self.height / 2,
         )
+
+
+class Polygon(Plane):
+    """
+    Planar polygon surface.
+
+    *If* vertices are supplied as (N, 2) or as (N, 3) with every x = 0,
+    the polygon is taken to lie in the x = 0 plane with normal (1, 0, 0).
+
+    Parameters
+    ----------
+    vertices : Sequence[Sequence[float]]
+        Coordinates of the polygon vertices (N ≥ 3, 2- or 3-D).
+        Ordering **must** be counter-clockwise when viewed *along* the
+        supplied/implicit normal.
+    normal : Sequence[float] | None
+        Optional outward normal.  Required if the vertices are not in a single
+        x = const plane.
+    """
+
+    def __init__(
+        self,
+        vertices: Sequence[Sequence[float]],
+        normal: Sequence[float] | None = None,
+    ):
+        super().__init__()  # Plane sets self._normal
+        self._tol = 1e-9
+
+        verts = np.asarray(vertices, dtype=float)
+        if verts.ndim != 2 or verts.shape[0] < 3:
+            raise ValueError("Need at least three vertices (shape (N,2) or (N,3)).")
+
+        self.planar = False  # planar polygon in x = 0 plane
+        # ---------------------------------------------------------------
+        # 1.  Promote 2-D vertices → 3-D in the x = 0 plane
+        # ---------------------------------------------------------------
+        if verts.shape[1] == 2:  # (y, z) given
+            verts = np.column_stack((np.zeros(len(verts)), verts))
+            if normal is None:
+                normal = (1.0, 0.0, 0.0)
+                self.planar = True  # planar polygon in x = 0 plane
+
+        # If 3-D vertices are all in x = 0 and no normal was given,
+        # assume the default plane too.
+        if verts.shape[1] == 3 and normal is None and np.allclose(verts[:, 0], 0.0):
+            normal = (1.0, 0.0, 0.0)
+            self.planar = True  # planar polygon in x = 0 plane
+
+        self.vertices = verts
+
+        # ---------------------------------------------------------------
+        # 2.  Establish or verify the plane normal
+        # ---------------------------------------------------------------
+        if normal is None:
+            # derive from first non-colinear triplet
+            found = False
+            for i in range(2, len(verts)):
+                n = np.cross(verts[i] - verts[0], verts[1] - verts[0])
+                if np.linalg.norm(n) > self._tol:
+                    normal = n
+                    found = True
+                    break
+            if not found:
+                raise ValueError("Vertices are colinear - cannot define a plane.")
+
+        self._normal = self._normalize_vector(normal)
+
+        # Coplanarity check
+        if np.any(np.abs((verts - verts[0]) @ self._normal) > self._tol):
+            raise ValueError("Vertices are not coplanar with the supplied normal.")
+
+        # ---------------------------------------------------------------
+        # 3.  Build an orthonormal (u,v) basis in the plane
+        # ---------------------------------------------------------------
+        a = np.array([1.0, 0.0, 0.0])
+        if np.abs(np.dot(a, self._normal)) > 0.99:  # almost parallel
+            a = np.array([0.0, 1.0, 0.0])
+        u = self._normalize_vector(np.cross(self._normal, a))
+        v = np.cross(self._normal, u)
+        self._basis = (u, v)
+
+        # Pre-project all vertices once
+        self._verts2d = self._project_to_2d(verts)
+
+        # Axis-aligned 3-D bounding box (fast rejection)
+        self._bbox = (
+            verts[:, 0].min(),
+            verts[:, 0].max(),
+            verts[:, 1].min(),
+            verts[:, 1].max(),
+            verts[:, 2].min(),
+            verts[:, 2].max(),
+        )
+
+    # ------------------------------------------------------------------ #
+    #                    Internal helpers                                 #
+    # ------------------------------------------------------------------ #
+    def _project_to_2d(self, pts: np.ndarray) -> np.ndarray:
+        """Project 3-D points into the polygon's local (u,v) coordinates."""
+        u, v = self._basis
+        d = pts - self.vertices[0]
+        return np.column_stack((d @ u, d @ v))
+
+    # ------------------------------------------------------------------ #
+    #             Plane/Surface interface overrides                       #
+    # ------------------------------------------------------------------ #
+    def f(self, P: np.ndarray) -> float:
+        """Signed distance from point to the polygon's plane."""
+        return np.dot(self._normal, P - self.vertices[0])
+
+    def within_boundary(self, P: np.ndarray) -> bool:
+        # The within boundary criterion is determined by the 2-D even–odd ray-casting in (u,v) plane
+        px, py = self._project_to_2d(P[None, :])[0]
+        verts = self._verts2d
+        inside = False
+
+        for i in range(len(verts)):
+            x1, y1 = verts[i]
+            x2, y2 = verts[(i + 1) % len(verts)]
+
+            # (a) exactly on edge?  treat as inside
+            if (
+                np.abs(np.cross([x2 - x1, y2 - y1], [px - x1, py - y1])) <= self._tol
+                and min(x1, x2) - self._tol <= px <= max(x1, x2) + self._tol
+                and min(y1, y2) - self._tol <= py <= max(y1, y2) + self._tol
+            ):
+                return True
+
+            # (b) even-odd rule
+            if (y1 > py) != (y2 > py):
+                x_at_y = x1 + (py - y1) * (x2 - x1) / (y2 - y1)
+                if x_at_y >= px:
+                    inside = not inside
+
+        return inside
+
+    # Optional: provide the boundary path (only type == "3D" is implemented)
+    def parametric_boundary(self, t: Sequence[float], type: str) -> np.ndarray:
+        # if type != "3D":
+        #     raise NotImplementedError("Only '3D' parametric boundary is supported.")
+        verts_closed = np.vstack([self.vertices, self.vertices[0]])  # close the loop
+        return verts_closed.T
+
+    def get_bbox(self) -> Tuple[float, float, float, float, float, float]:
+        return self._bbox

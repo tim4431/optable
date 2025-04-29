@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Sequence
 import copy
 import matplotlib.pyplot as plt
 
