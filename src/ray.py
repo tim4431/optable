@@ -304,22 +304,24 @@ class Ray(Vector):
                     circles.append(circle)
 
                 # Create side surfaces connecting adjacent circles.
-                faces = []
-                for i in range(len(circles) - 1):
-                    c1 = circles[i]
-                    c2 = circles[i + 1]
-                    for j in range(n_vertices):
-                        # Wrap around to the first vertex when j is the last index.
-                        j_next = (j + 1) % n_vertices
-                        # Define the quadrilateral face with 4 vertices:
-                        face = [c1[j], c1[j_next], c2[j_next], c2[j]]
-                        faces.append(face)
+                render_gaussian_faces = kwargs.get("render_gaussian_faces")
+                if render_gaussian_faces:
+                    faces = []
+                    for i in range(len(circles) - 1):
+                        c1 = circles[i]
+                        c2 = circles[i + 1]
+                        for j in range(n_vertices):
+                            # Wrap around to the first vertex when j is the last index.
+                            j_next = (j + 1) % n_vertices
+                            # Define the quadrilateral face with 4 vertices:
+                            face = [c1[j], c1[j_next], c2[j_next], c2[j]]
+                            faces.append(face)
 
-                # Create a Poly3DCollection for the side surfaces.
-                side_collection = Poly3DCollection(
-                    faces, facecolors="red", edgecolors=None, alpha=alpha / 2
-                )
-                ax.add_collection3d(side_collection)
+                    # Create a Poly3DCollection for the side surfaces.
+                    side_collection = Poly3DCollection(
+                        faces, facecolors=color, edgecolors=None, alpha=alpha / 2
+                    )
+                    ax.add_collection3d(side_collection)
 
                 # draw a point at the waist position.`
                 # print(self.origin, self.direction, z_to_waist)
