@@ -12,12 +12,12 @@ if __name__ == "__main__":
     ax1 = [plt.subplot(gs1[i]) for i in range(3)]
 
 sol0 = {
-    "RLY": [0.0, -0.3, 0.3],
+    "RLY": [0.0, -np.pi, np.pi],
     "tX": [0.0, -0.1, 0.1],
     "tZ": [0.0, -0.1, 0.1],
     "TX": [0, -1, 1],
     "TZ": [0, -1, 1],
-    "d2F": [1.58, -5, 5],
+    # "d2F": [1.58, -5, 5],
 }
 vars = sol0
 for var, val in vars.items():
@@ -48,9 +48,10 @@ raysy = [
     for z in np.linspace(-1, 1, 7)
 ]
 rays1d = [Ray([x, -50, z0], [0, 1, 0]) for x in np.linspace(-0.6, 0.6, 7)]
+rays0 = [Ray([0, -50, z0], [0, 1, 0])]
 
 # rays = raysx + raysz + raysy
-rays = rays1d
+rays = rays0
 
 # 2) Arbitrary 3-D triangle
 verts2d = np.array(
@@ -85,32 +86,32 @@ SO.surface = poly3dO
 DovePrism = ComponentGroup(origin=[0, 0, 0], name="Dove Prism")
 DovePrism.add_components([SL, SR, SU, SB, SI, SO])
 DovePrism = (
-    DovePrism.TX(TX).TZ(TZ).RotX(tX).RotZ(tZ).RotYAroundLocal([0, 0, D / 2], theta=RLY)
+    DovePrism.RotX(tX).RotZ(tZ).TX(TX).TZ(TZ).RotYAroundLocal([0, 0, D / 2], theta=RLY)
 )
 
 DL = -10
 FL = 20
-l0 = Lens(origin=[0, -FL + DL, z0], focal_length=FL, radius=2).RotZ(np.pi / 2)
-l1 = Lens(origin=[0, FL + DL + d2F, z0], focal_length=FL, radius=2).RotZ(np.pi / 2)
+# l0 = Lens(origin=[0, -FL + DL, z0], focal_length=FL, radius=2).RotZ(np.pi / 2)
+# l1 = Lens(origin=[0, FL + DL + d2F, z0], focal_length=FL, radius=2).RotZ(np.pi / 2)
 
-mon0 = Monitor([0, 22, z0], width=2 * D, height=2 * D, name="Monitor 0").RotZ(np.pi / 2)
-mon1 = Monitor([0, 30, z0], width=2 * D, height=2 * D, name="Monitor 0").RotZ(np.pi / 2)
+mon0 = Monitor([0, 10, z0], width=2 * D, height=2 * D, name="Monitor 0").RotZ(np.pi / 2)
+# mon1 = Monitor([0, 30, z0], width=2 * D, height=2 * D, name="Monitor 0").RotZ(np.pi / 2)
 
-components = [DovePrism, l0, l1]
+components = [DovePrism]
 
 table = OpticalTable()
 table.add_components(components)
-table.add_monitors([mon0, mon1])
+table.add_monitors([mon0])
 table.ray_tracing(rays)
 
 # ax0.annotate(mon0.ndata, (mon0.origin[0], mon0.origin[1]), fontsize=15, color="black")
 table.render(
     ax0,
     type="3D",
-    roi=[-5, 5, -25, 25, -5, 5],
+    roi=[-5, 5, -5, 5, -5, 5],
 )
 mon0.render_scatter(ax1[0])
-mon1.render_scatter(ax1[0])
+# mon1.render_scatter(ax1[0])
 
 if __name__ == "__main__":
     # plt.axis("off")

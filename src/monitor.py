@@ -41,6 +41,14 @@ class Monitor(OpticalComponent):
         )
         return counts, bins
 
+    def get_waist_distance(self):
+        tList = np.array([data[2] for data in self.data])
+        rList = np.array([data[3] for data in self.data])
+        waist_distance_List = np.array(
+            [r.distance_to_waist(r.q_at_z(t)) for r, t in zip(rList, tList)]
+        )
+        return waist_distance_List
+
     @property
     def sum_intensity(self):
         return np.sum([data[1] for data in self.data])
@@ -119,6 +127,11 @@ class Monitor(OpticalComponent):
                         fontsize=8,
                         color="black",
                     )
+            annote_waist_distance = kwargs.get("annote_waist_distance", False)
+            if annote_waist_distance:
+                waist_distance_List = self.get_waist_distance()
+                std_distance = np.std(waist_distance_List)
+                ax.text(0, self.height / 2 * 0.8, f"Std(z)={std_distance:.4f}")
 
         ax.set_xlim(-self.width / 2, self.width / 2)
         ax.set_ylim(-self.height / 2, self.height / 2)

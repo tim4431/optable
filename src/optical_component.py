@@ -2,6 +2,7 @@ import scipy
 from .base import *
 from .ray import *
 from .surfaces import *
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 class OpticalComponent(Vector):
@@ -173,6 +174,7 @@ class OpticalComponent(Vector):
         color = kwargs.get("color", "black")
         linewidth = kwargs.get("linewidth", 2)
         global_x, global_y, global_z = self._get_boundary_points(type)
+        detailed_render = kwargs.get("detailed_render", False)
         #
         if type == "Z":
             ax.plot(
@@ -216,6 +218,17 @@ class OpticalComponent(Vector):
                     scale=2,
                     scale_units="xy",
                 )
+            if detailed_render:
+                # add a 3D polygon
+                poly = Poly3DCollection(
+                    [list(zip(global_x, global_y, global_z))],
+                    color=color,
+                    linewidths=linewidth,
+                    edgecolors=color,
+                    alpha=0.25,
+                )
+                ax.add_collection3d(poly)
+
         else:
             raise ValueError(f"render: Invalid type: {type}")
 

@@ -139,32 +139,34 @@ class InteractiveOpticalTable:
             for i, (name, param_range) in enumerate(self.tunable_vars_setting.items()):
                 # print(name, param_range)
                 slider = sliders[name]
-                current_val = slider.val
-                # print(current_val)
-                _, min_val, max_val = param_range
-                range_val = max_val - min_val
-                if label == "x1":
-                    new_valmin = min_val
-                    new_valmax = max_val
-                elif label == "x10":
-                    new_valmin = max(current_val - range_val / 10, min_val)
-                    new_valmax = min(current_val + range_val / 10, max_val)
-                elif label == "x100":
-                    new_valmin = max(current_val - range_val / 100, min_val)
-                    new_valmax = min(current_val + range_val / 100, max_val)
-                #
-                slider.disconnect_events()
-                slider.ax.remove()
-                slider_newax = self._get_slider_ax(i)
-                sliders[name] = Slider(
-                    slider_newax,
-                    name,
-                    new_valmin,
-                    new_valmax,
-                    valinit=current_val,
-                )
-                sliders[name].on_changed(update)
-                self.fig.canvas.draw_idle()
+                if isinstance(slider, Slider):
+                    current_val = slider.val
+                    # print(current_val)
+                    _, min_val, max_val = param_range
+                    range_val = max_val - min_val
+                    if label == "x1":
+                        new_valmin = min_val
+                        new_valmax = max_val
+                    elif label == "x10":
+                        new_valmin = max(current_val - range_val / 10, min_val)
+                        new_valmax = min(current_val + range_val / 10, max_val)
+                    elif label == "x100":
+                        new_valmin = max(current_val - range_val / 100, min_val)
+                        new_valmax = min(current_val + range_val / 100, max_val)
+                    #
+                    slider.disconnect_events()
+                    slider.ax.remove()
+                    slider_newax = self._get_slider_ax(i)
+                    sliders[name] = Slider(
+                        slider_newax,
+                        name,
+                        new_valmin,
+                        new_valmax,
+                        valinit=current_val,
+                    )
+                    sliders[name].on_changed(update)
+            self.fig.canvas.draw_idle()
+            #
 
         finetune_multiplier.on_clicked(toggle_finetune)
 
@@ -206,11 +208,77 @@ class InteractiveOpticalTable:
         print("Optimized parameters: ", _result_to_params(result))
         return result
 
+    def scan(
+        self,
+        param_x: str,
+        values_x,
+        param_y: str,
+        values_y,
+        *,
+        cmap: str = "viridis",
+        show: bool = True,
+    ):
+        """Sweep two tunable variables and plot the cost function as a 2-D map.
+
+        Parameters
+        ----------
+        param_x, param_y : str
+            Names of the tunable variables to sweep on the x- and y-axes.
+        values_x, values_y : array-like
+            1-D sequences of values for each parameter.
+        cmap : str, default 'viridis'
+            Matplotlib colormap for the cost map.
+        show : bool, default True
+            If True, immediately draw the figure.
+
+        Returns
+        -------
+        cost_map : 2-D numpy.ndarray
+            Shape (len(values_y), len(values_x)) array of cost function values.
+        """
+        Nx, Ny = len(values_x), len(values_y)
+        cost_map = np.empty((Ny, Nx), dtype=float)
+
+        # Temporarily disable live rendering
+        original_render = getattr(self, "render", True)
+        self.render = False
+
+        for j, yval in enumerate(values_y):
+            for i, xval in enumerate(values_x):
+                # update parameters and compute cost
+                self.update_table(**{param_x: xval, param_y: yval})
+                cost_map[j, i] = float(self.namespace["cost_func"])
+
+        # restore rendering flag
+        self.render = original_render
+
+        # plot the cost map
+        self._clear_axes()
+        im = self.ax0.imshow(
+            cost_map,
+            origin="lower",
+            aspect="auto",
+            extent=[values_x[0], values_x[-1], values_y[0], values_y[-1]],
+            cmap=cmap,
+        )
+        cbar = self.fig.colorbar(im, ax=self.ax0)
+        cbar.set_label("cost_func")
+
+        self.ax0.set_xlabel(param_x)
+        self.ax0.set_ylabel(param_y)
+        self.ax0.set_title("Parameter scan – cost function map")
+
+        if show:
+            plt.show()
+
+        return cost_map
+
 
 if __name__ == "__main__":
-    FILE_NAME = os.path.join(os.path.dirname(__file__), "../demo", "8f_twist.py")
+    FILE_NAME = os.path.join(os.path.dirname(__file__), "../demo", "vipa_2nd.py")
     MODE = "interact"
     # MODE = "optimize"
+    # MODE = "scan"
     interactive_table = InteractiveOpticalTable(fileName=FILE_NAME)
     interactive_table.render = False
 
@@ -219,3 +287,7 @@ if __name__ == "__main__":
         interactive_table.slider_interactive()
     elif MODE == "optimize":
         interactive_table.optimize(maximize=True)
+    elif MODE == "scan":
+        interactive_table.scan(
+            "V2d4F", np.linspace(-3.3, 2.7, 11), "V2dXMLA", np.linspace(0.7, 6.7, 11)
+        )
