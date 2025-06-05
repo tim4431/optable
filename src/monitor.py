@@ -44,9 +44,20 @@ class Monitor(OpticalComponent):
     def get_waist_distance(self):
         tList = np.array([data[2] for data in self.data])
         rList = np.array([data[3] for data in self.data])
-        waist_distance_List = np.array(
-            [r.distance_to_waist(r.q_at_z(t)) for r, t in zip(rList, tList)]
-        )
+        # waist_distance_List_raw = np.array(
+        #     [r.distance_to_waist(r.q_at_z(t)) for r, t in zip(rList, tList)]
+        # )
+        # account for beam propagation direction
+        waist_distance_List = []
+        for r, t in zip(rList, tList):
+            q = r.q_at_z(t)
+            distance_raw = r.distance_to_waist(q)
+            if np.dot(r.direction, self.normal) > 0:
+                # if the ray is propagating towards the monitor, we take the negative distance
+                distance_raw = -distance_raw
+            waist_distance_List.append(distance_raw)
+        waist_distance_List = np.array(waist_distance_List)
+
         return waist_distance_List
 
     @property
@@ -112,26 +123,64 @@ class Monitor(OpticalComponent):
             )
             annote_spotsize = kwargs.get("annote_spotsize", False)
             annote_waist = kwargs.get("annote_waist", False)
+            _sign = 1
             for spotsize, waist, y, z, a in zip(
                 spotsizeList, waistList, yList, zList, alpha
             ):
                 circle = plt.Circle((y, z), spotsize, color="red", alpha=a / 2, ec=None)
                 ax.add_artist(circle)
                 if annote_spotsize:
-                    ax.text(y, z, f"sp={spotsize:.2e}", fontsize=8, color="black")
-                if annote_waist:
                     ax.text(
                         y,
-                        z + 0.1 * self.height,
-                        f"w0={waist:.2e}",
+                        z + 0.1 * self.height * _sign,
+                        f"sp={spotsize:.2e}",
                         fontsize=8,
                         color="black",
                     )
-            annote_waist_distance = kwargs.get("annote_waist_distance", False)
-            if annote_waist_distance:
+                if annote_waist:
+                    ax.text(
+                        y,
+                        z + 0.1 * self.height * _sign,
+                        f"w={waist:.2e}",
+                        fontsize=8,
+                        color="black",
+                    )
+                _sign = (_sign + 1 + 7) % 7 - 3  # alternate sign for waist annotation
+            annote_dis_std = kwargs.get("annote_dis_std", False)
+            if annote_dis_std:
                 waist_distance_List = self.get_waist_distance()
+                # print(
+                #     f"Waist distance: {waist_distance_List}, std={np.std(waist_distance_List):.4f}"
+                # )
                 std_distance = np.std(waist_distance_List)
                 ax.text(0, self.height / 2 * 0.8, f"Std(z)={std_distance:.4f}")
+            #
+            idx_y = np.argsort(yList)
+            y_sorted = yList[idx_y]
+            dy = np.diff(y_sorted)
+            std_y = np.std(dy)
+            z_sorted = zList[idx_y]
+            dz = np.diff(z_sorted)
+            std_z = np.std(dz)
+            #
+            annote_pos_std = kwargs.get("annote_pos_std", False)
+            annote_pos_mean = kwargs.get("annote_pos_mean", False)
+            if annote_pos_std:
+                # annote the std of scatter points in Y and Z
+                ax.text(
+                    0,
+                    self.height / 2 * 0.6,
+                    f"SX={std_y:.4f}, SY={std_z:.4f}",
+                )
+            if annote_pos_mean:
+                # annote the mean of scatter points in Y and Z
+                mean_dy = np.mean(dy)
+                mean_dz = np.mean(dz)
+                ax.text(
+                    0,
+                    self.height / 2 * 0.4,
+                    f"MX={mean_dy:.4f}, MY={mean_dz:.4f}",
+                )
 
         ax.set_xlim(-self.width / 2, self.width / 2)
         ax.set_ylim(-self.height / 2, self.height / 2)
