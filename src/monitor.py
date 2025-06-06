@@ -14,6 +14,14 @@ class Monitor(OpticalComponent):
     def ndata(self):
         return len(self.data)
 
+    @property
+    def yList(self):
+        return np.array([data[0][1] for data in self.data])
+
+    @property
+    def zList(self):
+        return np.array([data[0][2] for data in self.data])
+
     def interact_local(self, ray):
         return [ray]
 
@@ -59,6 +67,16 @@ class Monitor(OpticalComponent):
         waist_distance_List = np.array(waist_distance_List)
 
         return waist_distance_List
+
+    def get_delta_pos(self):
+        yList = self.yList
+        zList = self.zList
+        idx_y = np.argsort(yList)
+        y_sorted = yList[idx_y]
+        dy = np.diff(y_sorted)
+        z_sorted = zList[idx_y]
+        dz = np.diff(z_sorted)
+        return dy, dz
 
     @property
     def sum_intensity(self):
@@ -155,24 +173,18 @@ class Monitor(OpticalComponent):
                 std_distance = np.std(waist_distance_List)
                 ax.text(0, self.height / 2 * 0.8, f"Std(z)={std_distance:.4f}")
             #
-            idx_y = np.argsort(yList)
-            y_sorted = yList[idx_y]
-            dy = np.diff(y_sorted)
-            std_y = np.std(dy)
-            z_sorted = zList[idx_y]
-            dz = np.diff(z_sorted)
-            std_z = np.std(dz)
-            #
-            annote_pos_std = kwargs.get("annote_pos_std", False)
-            annote_pos_mean = kwargs.get("annote_pos_mean", False)
-            if annote_pos_std:
+
+            annote_delta_pos = kwargs.get("annote_delta_pos", False)
+            if annote_delta_pos:
+                dy, dz = self.get_delta_pos()
+                std_y = np.std(dy)
+                std_z = np.std(dz)
                 # annote the std of scatter points in Y and Z
                 ax.text(
                     0,
                     self.height / 2 * 0.6,
                     f"SX={std_y:.4f}, SY={std_z:.4f}",
                 )
-            if annote_pos_mean:
                 # annote the mean of scatter points in Y and Z
                 mean_dy = np.mean(dy)
                 mean_dz = np.mean(dz)
