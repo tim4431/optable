@@ -34,6 +34,8 @@ class InteractiveOpticalTable:
         self.FPS = FPS  # target frames per second for slider drags
         self.render = True  # live‑render flag
         self.changing_preset = False  # suppress spurious update() loops
+        self.optimization_running = False  # flag for optimization state
+        self.optimization_interrupted = False  # flag for optimization interruption
 
         # ---- load experimental‑setup file into its own namespace ----------
         self.namespace: dict[str, object] = {}
@@ -64,6 +66,7 @@ class InteractiveOpticalTable:
         # choose first one by default
         if self.cost_funcs:
             self.selected_cost_name = next(iter(self.cost_funcs))
+        self._display_optimization = False
 
     # ------------------------------------------------------------------ #
     #                    ───  FIGURE / AXES HELPERS  ───                 #
@@ -103,7 +106,7 @@ class InteractiveOpticalTable:
     def _get_checkbox_ax(self, idx: int):
         # tiny square to the left of the slider
         return self.fig.add_axes(
-            [0.98, self.slider_axes_top * (1 - idx / 25) + 0.005, 0.03, 0.03]
+            [0.97, self.slider_axes_top * (1 - idx / 25) + 0.005, 0.03, 0.03]
         )
 
     # ---- cost-function discovery -------------------------------------
@@ -160,15 +163,12 @@ class InteractiveOpticalTable:
 
             # 检查是否为布尔变量(复选框)
             is_boolean_param = vmin is None and vmax is None
-
-            # 创建优化选择框，但对布尔变量禁用
             self.opt_boxes[name] = CheckButtons(cb_ax, [""], [False])
 
             if is_boolean_param:
                 # 对于布尔变量，禁用优化选择框
                 self.opt_boxes[name].set_active(0)
                 cb_ax.set_visible(False)
-                continue
 
             for side in ("top", "right", "left", "bottom"):
                 cb_ax.spines[side].set_visible(False)
@@ -217,11 +217,21 @@ class InteractiveOpticalTable:
         # --------------------------------------------------------------
         # Finetune
         # --------------------------------------------------------------
-        finetune_ax = self.fig.add_axes([0.78, 0.01, 0.15, 0.11])
+        FINETUNE_X, FINETUNE_Y = 0.78, 0.01
+        FINTUNE_DX, FINTUNE_DY = 0.15, 0.11
+        finetune_ax = self.fig.add_axes(
+            [FINETUNE_X, FINETUNE_Y, FINTUNE_DX, FINTUNE_DY]
+        )
         finetune = RadioButtons(finetune_ax, ["x1", "x10", "x100", "x1000"], active=0)
         for side in ("top", "right", "left", "bottom"):
             finetune_ax.spines[side].set_visible(False)
-        self.fig.text(0.78, 0.12, "Finetune Multiplier", fontsize=12, weight="bold")
+        self.fig.text(
+            FINETUNE_X,
+            FINETUNE_Y + 0.11,
+            "Finetune Multiplier",
+            fontsize=12,
+            weight="bold",
+        )
 
         def _retune(label):
             for idx, name in enumerate(self.param_order):
@@ -299,63 +309,114 @@ class InteractiveOpticalTable:
         # --------------------------------------------------------------
         # Cost function selector + OPTIMISE button
         # --------------------------------------------------------------
-        cost_rb_ax = self.fig.add_axes([0.78, 0.38, 0.17, 0.1])
-        self.fig.text(0.78, 0.50, "Cost Function", fontsize=12, weight="bold")
-        btn_ax = self.fig.add_axes([0.9, 0.48, 0.06, 0.04])
-        btn = Button(btn_ax, "OPTIMISE", hovercolor="lightgray")
-        for s in cost_rb_ax.spines.values():
-            s.set_visible(False)
+        if self._display_optimization:
+            COST_X, COST_Y = 0.03, 0.38
+            cost_rb_ax = self.fig.add_axes([COST_X, COST_Y, 0.17, 0.1])
+            self.fig.text(
+                COST_X, COST_Y + 0.12, "Cost Function", fontsize=12, weight="bold"
+            )
+            BTN_X, BTN_Y = COST_X + 0.12, COST_Y + 0.10
+            btn_ax = self.fig.add_axes([BTN_X, BTN_Y, 0.06, 0.04])
+            btn = Button(btn_ax, "OPTIMISE", hovercolor="lightgray")
+            for s in cost_rb_ax.spines.values():
+                s.set_visible(False)
 
-        def _pick_cost(label):
-            self.selected_cost_name = label
-            self._update_cost_function_val
-            self.fig.canvas.draw_idle()
+            def _pick_cost(label):
+                self.selected_cost_name = label
+                self._update_cost_function_val
+                self.fig.canvas.draw_idle()
 
-        # add radio buttons for cost functions
-        if self.cost_funcs:
-            cost_rb = RadioButtons(cost_rb_ax, list(self.cost_funcs.keys()), active=0)
-            cost_rb.on_clicked(_pick_cost)
+            # # add radio buttons for cost functions
+            # if self.cost_funcs:
+            #     cost_rb = RadioButtons(
+            #         cost_rb_ax, list(self.cost_funcs.keys()), active=0
+            #     )
+            #     cost_rb.on_clicked(_pick_cost)
+            # add current cost value display
+            COST_VAL_X, COST_VAL_Y = COST_X, COST_Y + 0.10
+            cost_value_text_ax = self.fig.add_axes([COST_VAL_X, COST_VAL_Y, 0.17, 0.02])
+            cost_value_text_ax.axis("off")
+            self.cost_value_text = cost_value_text_ax.text(
+                0, 0, "Value: --", fontsize=10
+            )
 
-        # add current cost value display
-        cost_value_text_ax = self.fig.add_axes([0.78, 0.48, 0.17, 0.02])
-        cost_value_text_ax.axis("off")
-        self.cost_value_text = cost_value_text_ax.text(0, 0, "Value: --", fontsize=10)
+            #
+            COST_PROGRESS_X, COST_PROGRESS_Y = COST_X, COST_Y - 0.18
+            self.opt_progress_ax = self.fig.add_axes(
+                [COST_PROGRESS_X, COST_PROGRESS_Y, 0.17, 0.15]
+            )
+            self.opt_progress_ax.set_xlabel("Iter Num", fontsize=8)
+            self.opt_progress_ax.set_ylabel("Cost Function", fontsize=8)
+            self.opt_progress_ax.set_yscale("log")
+            (self.opt_progress_line,) = self.opt_progress_ax.plot([], [], "b-")
+            self.opt_progress_ax.grid(True)
 
-        self.opt_progress_ax = self.fig.add_axes([0.78, 0.20, 0.17, 0.15])
-        self.opt_progress_ax.set_xlabel("Iter Num", fontsize=8)
-        self.opt_progress_ax.set_ylabel("Cost Function", fontsize=8)
-        (self.opt_progress_line,) = self.opt_progress_ax.plot([], [], "b-")
-        self.opt_progress_ax.grid(True)
+            def _on_slider_changed_with_cost_update(_):
+                now = time.time()
+                if now - self.last_update_time < 1 / self.FPS:
+                    return
+                self.last_update_time = now
+                if not self.changing_preset:
+                    _redraw()
+                    # 更新代价函数值显示
+                    if hasattr(self, "cost_value_text"):
+                        cost_value = self._current_cost_value()
+                        self.cost_value_text.set_text(f"Value: {cost_value:.6g}")
 
-        def _on_slider_changed_with_cost_update(_):
-            now = time.time()
-            if now - self.last_update_time < 1 / self.FPS:
-                return
-            self.last_update_time = now
-            if not self.changing_preset:
-                _redraw()
-                # 更新代价函数值显示
-                if hasattr(self, "cost_value_text"):
-                    cost_value = self._current_cost_value()
-                    self.cost_value_text.set_text(f"Value: {cost_value:.6g}")
+            # 替换之前的回调函数
+            for w in list(self.sliders.values()) + list(self.opt_boxes.values()):
+                if isinstance(w, Slider):
+                    w.on_changed(_on_slider_changed_with_cost_update)
+                else:
+                    w.on_clicked(_on_slider_changed_with_cost_update)
 
-        # 替换之前的回调函数
-        for w in list(self.sliders.values()) + list(self.opt_boxes.values()):
-            if isinstance(w, Slider):
-                w.on_changed(_on_slider_changed_with_cost_update)
-            else:
-                w.on_clicked(_on_slider_changed_with_cost_update)
+            if self.cost_funcs:
+                cost_rb = RadioButtons(
+                    cost_rb_ax, list(self.cost_funcs.keys()), active=0
+                )
+                cost_rb.on_clicked(_pick_cost)
+                cost_value = self._current_cost_value()
+                self.cost_value_text.set_text(f"Value: {cost_value:.6g}")
 
-        if self.cost_funcs:
-            cost_rb = RadioButtons(cost_rb_ax, list(self.cost_funcs.keys()), active=0)
-            cost_rb.on_clicked(_pick_cost)
-            cost_value = self._current_cost_value()
-            self.cost_value_text.set_text(f"Value: {cost_value:.6g}")
+            # 修改按钮点击处理函数
+            def _run(_):
+                # click to stop optimization if running
+                if self.optimization_running:
+                    self.optimization_interrupted = True
+                else:  # click to start optimization
+                    self.optimization_running = True
+                    self.optimization_interrupted = False
 
-        def _run(_):
-            self.optimize_selected()
+                    original_color = btn.color
+                    original_hovercolor = btn.hovercolor
+                    original_label = btn.label.get_text()
 
-        btn.on_clicked(_run)
+                    btn.color = "lightgreen"
+                    btn.hovercolor = "red"
+                    btn.label.set_text("Optimizing...")
+                    btn._hover_fill_color = "red"  # 确保悬停颜色更新
+
+                    # 添加悬停时的tooltip文本
+                    orig_tooltip = btn.ax.get_title()
+                    btn.ax.set_title("Click to abort")
+                    self.fig.canvas.draw_idle()
+
+                    plt.draw()
+                    plt.pause(0.01)
+
+                    try:
+                        self.optimize_selected()
+                    finally:
+                        # 恢复按钮原始状态
+                        self.optimization_running = False
+                        btn.color = original_color
+                        btn.hovercolor = original_hovercolor
+                        btn.label.set_text(original_label)
+                        btn._hover_fill_color = original_hovercolor
+                        btn.ax.set_title(orig_tooltip)
+                        self.fig.canvas.draw_idle()
+
+            btn.on_clicked(_run)
 
         # --------------------------------------------------------------
         # END of blocks
@@ -367,6 +428,15 @@ class InteractiveOpticalTable:
         print("Final slider values:")
         for k, v in self._sliders_to_params().items():
             print(f"  {k} = {v}")
+
+        # Print final slider values as a raw dict for easy copy-paste
+        print("Dict Form:")
+        final_params = self._sliders_to_params()
+        print("Final slider values as dict:")
+        print("{")
+        for k, v in final_params.items():
+            print(f"    {repr(k)}: {repr(v)},")
+        print("}")
 
     # ------------------------------------------------------------------ #
     #                       ───  BACK-END LOGIC  ───                      #
@@ -404,6 +474,8 @@ class InteractiveOpticalTable:
         iterations = []
         costs = []
         self.opt_progress_line.set_data(iterations, costs)
+        # logplot in y axis
+        # self.opt_progress_ax.set_yscale("log")
         self.opt_progress_ax.relim()
         self.opt_progress_ax.autoscale_view()
 
@@ -411,6 +483,9 @@ class InteractiveOpticalTable:
 
         # -------------------------------------------------------------- #
         def _cost(x):
+            if self.optimization_interrupted:
+                raise InterruptedError("Optimization aborted by user")
+
             iteration_count[0] += 1
             params = fixed | {n: v for n, v in zip(opt_names, x)}
             self._clear_axes()
@@ -418,48 +493,58 @@ class InteractiveOpticalTable:
 
             c = self._current_cost_value()
             print(f"Iter {iteration_count[0]}: cost={c: .6g}")
-
-            # 更新优化进度图
             iterations.append(iteration_count[0])
             costs.append(c if not maximise else -c)
-            self.opt_progress_line.set_data(iterations, costs)
-            self.opt_progress_ax.relim()
-            self.opt_progress_ax.autoscale_view()
-            self.fig.canvas.draw_idle()
 
             # update main drawing every 10 iterations
             if iteration_count[0] % 10 == 0 and self.render:
+                self._update_cost_function_val()
+                self.opt_progress_line.set_data(iterations, costs)
+                self.opt_progress_ax.relim()
+                self.opt_progress_ax.autoscale_view()
+                self.fig.canvas.draw_idle()
                 plt.draw()
-                plt.pause(0.001)
+                plt.pause(0.01)
 
             return -c if maximise else c
 
         print(f"Optimising over: {opt_names}")
-        res = minimize(
-            _cost,
-            initials,
-            bounds=bounds,
-            method="Nelder-Mead",
-            options={
-                # "maxiter": 5000,  # Larger max number of iterations
-                # "maxfev": 10000,  # Larger max number of function evaluations
-                "xatol": 1e-5,  # Smaller tolerance on parameter change
-                "fatol": 1e-7,  # Smaller tolerance on function value change
-                # "adaptive": True,  # Enable adaptive step size (optional, good for badly scaled problems)
-            },
-        )
-        print("Result:")
-        for n, v in zip(opt_names, res.x):
-            print(f"  {n} = {v}")
-        # push final values back to sliders for visual feedback
-        for n, v in zip(opt_names, res.x):
-            w = self.sliders[n]
-            if isinstance(w, Slider):
-                w.set_val(v)
-            else:
-                desired = bool(round(v))
-                if w.get_status()[0] != desired:
-                    w.set_active(0)
+        # plt.ion()
+        try:
+            res = minimize(
+                _cost,
+                initials,
+                bounds=bounds,
+                method="Nelder-Mead",
+                options={
+                    "maxiter": 150,  # Larger max number of iterations
+                    "maxfev": 150,  # Larger max number of function evaluations
+                    "xatol": 1e-5,  # Smaller tolerance on parameter change
+                    "fatol": 1e-7,  # Smaller tolerance on function value change
+                    # "adaptive": True,  # Enable adaptive step size (optional, good for badly scaled problems)
+                },
+            )
+        except InterruptedError:
+            print("Optimization interrupted by user.")
+            res = None
+
+        # 清除中断标志
+        self.optimization_interrupted = False
+
+        if res is not None:
+            # plt.ioff()
+            print("Result:")
+            for n, v in zip(opt_names, res.x):
+                print(f"  {n} = {v}")
+            # push final values back to sliders for visual feedback
+            for n, v in zip(opt_names, res.x):
+                w = self.sliders[n]
+                if isinstance(w, Slider):
+                    w.set_val(v)
+                else:
+                    desired = bool(round(v))
+                    if w.get_status()[0] != desired:
+                        w.set_active(0)
 
         # update the cost function value display
         self._update_cost_function_val()
@@ -481,9 +566,6 @@ class InteractiveOpticalTable:
             params = {name: val for name, val in zip(names, vals)}
             self._clear_axes()
             self.update_table(**params)
-            if self.render:
-                plt.draw()
-                plt.pause(0.01)
             c = float(self.namespace["cost_func"])
             print(f"Iter {n}: cost={c:.5g}; vals={vals}")
             return -c if maximize else c
@@ -534,11 +616,11 @@ class InteractiveOpticalTable:
 # Small CLI entry‑point ------------------------------------------------
 # ---------------------------------------------------------------------
 if __name__ == "__main__":
-    FILE_NAME = os.path.join(os.path.dirname(__file__), "../demo", "vipa_1st.py")
+    FILE_NAME = os.path.join(os.path.dirname(__file__), "../demo", "vipa_2nd.py")
     MODE = "interact"  # 'interact' | 'optimize' | 'scan'
 
     table = InteractiveOpticalTable(fileName=FILE_NAME)
-    table.render = False  # we'll enable live‑render in the GUI
+    table._display_optimization = True  # enable cost function display
 
     match MODE:
         case "interact":

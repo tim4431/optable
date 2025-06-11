@@ -330,13 +330,6 @@ class BaseMirror(OpticalComponent):
             reflected_direction = (
                 ray.direction - 2 * np.dot(ray.direction, normal) * normal
             )
-            # reflected_ray = Ray(
-            #     P,
-            #     reflected_direction,
-            #     ray.intensity * self.reflectivity,
-            #     _id=ray._id,
-            #     qo=qo,
-            # )
             reflected_ray = ray.copy(
                 origin=P,
                 direction=reflected_direction,
@@ -345,9 +338,6 @@ class BaseMirror(OpticalComponent):
             )
             rays.append(reflected_ray)
         if self.transmission > 0:
-            # transmitted_ray = Ray(
-            #     P, ray.direction, ray.intensity * self.transmission, _id=ray._id, qo=qo
-            # )
             transmitted_ray = ray.copy(
                 origin=P,
                 direction=ray.direction,
@@ -413,9 +403,6 @@ class BaseRefraciveSurface(OpticalComponent):
         if sin_theta_t < 1:
             cos_theta_t = np.sqrt(1 - sin_theta_t**2)
             transmitted_direction = (n2 / n1) * r_t + cos_theta_t * normal
-            # transmitted_ray = Ray(
-            #     P, transmitted_direction, ray.intensity * self.transmission, _id=ray._id
-            # )
             transmitted_ray = ray.copy(
                 origin=P,
                 direction=transmitted_direction,
@@ -428,9 +415,6 @@ class BaseRefraciveSurface(OpticalComponent):
             # total internal reflection
             normal = -normal
             reflected_direction = ray.direction + 2 * cos_theta_i * normal
-            # reflected_ray = Ray(
-            #     P, reflected_direction, ray.intensity * self.reflectivity, _id=ray._id
-            # )
             reflected_ray = ray.copy(
                 origin=P,
                 direction=reflected_direction,
@@ -443,9 +427,6 @@ class BaseRefraciveSurface(OpticalComponent):
         if self.reflectivity > 0:
             normal = -normal
             reflected_direction = ray.direction + 2 * cos_theta_i * normal
-            # reflected_ray = Ray(
-            #     P, reflected_direction, ray.intensity * self.reflectivity, _id=ray._id
-            # )
             reflected_ray = ray.copy(
                 origin=P,
                 direction=reflected_direction,

@@ -243,6 +243,45 @@ class Cylinder(Surface):
         )
 
 
+class Sphere(Surface):
+    def __init__(self, radius, height=None):
+        super().__init__()
+        self.radius = radius
+        self.height = (
+            height if height is not None else 2 * radius
+        )  # from z=+radius to z=+radius-height
+        self.planar = False
+
+    def f(self, P: np.ndarray) -> float:
+        return np.linalg.norm(P) - self.radius
+
+    def normal(self, P: np.ndarray) -> np.ndarray:
+        return P / self.radius
+
+    def within_boundary(self, P: np.ndarray) -> bool:
+        x, y, z = P
+        return self.radius - self.height <= z and z <= self.radius
+
+    def parametric_boundary(self, t: Sequence[float], type: str) -> np.ndarray:
+        theta = 2 * np.pi * t
+        r = np.sqrt(self.radius**2 - (self.radius - self.height) ** 2)
+        x = r * np.cos(theta)
+        y = r * np.sin(theta)
+        z = np.full_like(t, self.radius - self.height)
+        points = np.vstack([x, y, z])
+        return points
+
+    def get_bbox(self):
+        return (
+            -self.radius,
+            self.radius,
+            -self.radius,
+            self.radius,
+            self.radius - self.height,
+            self.radius,
+        )
+
+
 class Polygon(Plane):
     """
     Planar polygon surface.

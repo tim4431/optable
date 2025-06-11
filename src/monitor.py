@@ -22,6 +22,14 @@ class Monitor(OpticalComponent):
     def zList(self):
         return np.array([data[0][2] for data in self.data])
 
+    @property
+    def tList(self):
+        return np.array([data[2] for data in self.data])
+
+    @property
+    def rList(self):
+        return np.array([data[3] for data in self.data])
+
     def interact_local(self, ray):
         return [ray]
 
@@ -50,11 +58,8 @@ class Monitor(OpticalComponent):
         return counts, bins
 
     def get_waist_distance(self):
-        tList = np.array([data[2] for data in self.data])
-        rList = np.array([data[3] for data in self.data])
-        # waist_distance_List_raw = np.array(
-        #     [r.distance_to_waist(r.q_at_z(t)) for r, t in zip(rList, tList)]
-        # )
+        tList = self.tList
+        rList = self.rList
         # account for beam propagation direction
         waist_distance_List = []
         for r, t in zip(rList, tList):
@@ -68,9 +73,21 @@ class Monitor(OpticalComponent):
 
         return waist_distance_List
 
+    def get_waist(self):
+        tList = self.tList
+        rList = self.rList
+        waist_List = []
+        for r, t in zip(rList, tList):
+            q = r.q_at_z(t)
+            waist_List.append(r.waist(q))
+        return np.array(waist_List)
+
     def get_delta_pos(self):
         yList = self.yList
         zList = self.zList
+        if len(yList) == 0 or len(zList) == 0:
+            return np.array([0.0]), np.array([0.0])
+
         idx_y = np.argsort(yList)
         y_sorted = yList[idx_y]
         dy = np.diff(y_sorted)
@@ -116,8 +133,8 @@ class Monitor(OpticalComponent):
             ax.set_ylabel("Z")
 
     def render_scatter(self, ax, **kwargs):
-        if hasattr(self, "name") and self.name is not None:
-            print(f"Rendering {self.name} with {self.ndata} data points")
+        # if hasattr(self, "name") and self.name is not None:
+        #     print(f"Rendering {self.name} with {self.ndata} data points")
         if len(self.data) == 0:
             return
         yList = np.array([data[0][1] for data in self.data])
@@ -192,6 +209,17 @@ class Monitor(OpticalComponent):
                     0,
                     self.height / 2 * 0.4,
                     f"MX={mean_dy:.4f}, MY={mean_dz:.4f}",
+                )
+
+            annote_waist_std = kwargs.get("annote_waist_std", False)
+            if annote_waist_std:
+                waist_List = self.get_waist()
+                std_waist = np.std(waist_List)
+                mean_waist = np.mean(waist_List)
+                ax.text(
+                    0,
+                    self.height / 2 * 0.2,
+                    f"Std(w)={std_waist*1e4:.4f}, M(w)={mean_waist*1e4:.4f}",
                 )
 
         ax.set_xlim(-self.width / 2, self.width / 2)
