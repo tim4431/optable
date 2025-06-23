@@ -616,11 +616,12 @@ class InteractiveOpticalTable:
 # Small CLI entry‑point ------------------------------------------------
 # ---------------------------------------------------------------------
 if __name__ == "__main__":
-    FILE_NAME = os.path.join(os.path.dirname(__file__), "../demo", "vipa_2nd.py")
+    FILE_NAME = os.path.join(os.path.dirname(__file__), "../examples", "real_lenses.py")
     MODE = "interact"  # 'interact' | 'optimize' | 'scan'
 
     table = InteractiveOpticalTable(fileName=FILE_NAME)
-    table._display_optimization = True  # enable cost function display
+    table._display_optimization = False  # enable cost function display
+    # table._display_optimization = True  # enable cost function display
 
     match MODE:
         case "interact":

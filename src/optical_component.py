@@ -503,6 +503,54 @@ class SquareRefractive(BaseRefraciveSurface):
         self.surface = Rectangle(width, height)
 
 
+class CircleRefractive(BaseRefraciveSurface):
+    def __init__(
+        self,
+        origin,
+        radius: float = 0.5,
+        n1: Union[float, callable] = 1.0,
+        n2: Union[float, callable] = 1.0,
+        reflectivity: float = 0.0,
+        transmission: float = 1.0,
+        **kwargs,
+    ):
+        super().__init__(
+            origin,
+            n1=n1,
+            n2=n2,
+            reflectivity=reflectivity,
+            transmission=transmission,
+            **kwargs,
+        )
+        self.radius = radius
+        self.surface = Circle(radius)
+
+
+class SphereRefractive(BaseRefraciveSurface):
+    def __init__(
+        self,
+        origin,
+        radius: float = 0.5,
+        height: float = 0.5,
+        n1: Union[float, callable] = 1.0,
+        n2: Union[float, callable] = 1.0,
+        reflectivity: float = 0.0,
+        transmission: float = 1.0,
+        **kwargs,
+    ):
+        super().__init__(
+            origin,
+            n1=n1,
+            n2=n2,
+            reflectivity=reflectivity,
+            transmission=transmission,
+            **kwargs,
+        )
+        self.radius = radius
+        self.height = height
+        self.surface = Sphere(radius, height)
+
+
 class BeamSplitter(Mirror):
     def __init__(self, origin, radius: float = 0.5, eta: float = 0.5, **kwargs):
         reflectivity = np.sqrt(eta)

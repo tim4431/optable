@@ -136,3 +136,20 @@ class MLA(ComponentGroup):
                 f = focal_length * (1 + focal_drift * np.random.randn())
                 lens = Lens(origin=o, focal_length=f, radius=radius, **kwargs)
                 self.add_component(lens)
+
+
+class PlanoConvexLens(ComponentGroup):
+    def __init__(self, origin, EFL, CT, diameter, R, **kwargs):
+        super().__init__(origin)
+        # calculate refractive index from EFL and R
+        n = 1 + R / EFL
+        o1 = np.array([-R + CT, 0, 0]) + self.origin
+        height_curve = R - np.sqrt(R**2 - (diameter / 2) ** 2)
+        curved_face = SphereRefractive(
+            origin=o1, radius=R, height=height_curve, n1=1.0, n2=n, **kwargs
+        )
+        self.add_component(curved_face)
+        flat_face = CircleRefractive(
+            origin=self.origin, radius=diameter / 2, n1=n, n2=1.0, **kwargs
+        )
+        self.add_component(flat_face)

@@ -30,6 +30,24 @@ class Monitor(OpticalComponent):
     def rList(self):
         return np.array([data[3] for data in self.data])
 
+    @property
+    def directionList(self):
+        return np.array([r.direction for r in self.rList])
+
+    @property
+    def tYList(self):
+        directionList = self.directionList  # n*3
+        # y component of the direction vector is the second component
+        tYList = directionList[:, 1]  # n
+        return tYList
+
+    @property
+    def tZList(self):
+        directionList = self.directionList
+        # z component of the direction vector is the third component
+        tZList = directionList[:, 2]  # n
+        return tZList
+
     def interact_local(self, ray):
         return [ray]
 
@@ -143,6 +161,27 @@ class Monitor(OpticalComponent):
         alpha = np.clip(IList, 0.1, 1)
         ax.scatter(yList, zList, marker="+", alpha=alpha, c="blue")
         #
+        annote_delta_pos = kwargs.get("annote_delta_pos", False)
+        if annote_delta_pos:
+            dy, dz = self.get_delta_pos()
+            std_y = np.std(dy)
+            std_z = np.std(dz)
+            # annote the std of scatter points in Y and Z
+            ax.text(
+                0,
+                self.height / 2 * 0.6,
+                f"SX={std_y:.4f}, SY={std_z:.4f}",
+            )
+            # annote the mean of scatter points in Y and Z
+            mean_dy = np.mean(dy)
+            mean_dz = np.mean(dz)
+            ax.text(
+                0,
+                self.height / 2 * 0.4,
+                f"MX={mean_dy:.4f}, MY={mean_dz:.4f}",
+            )
+        #
+        # GAUSSIAN BEAM
         gaussian_beam = kwargs.get("gaussian_beam", False)
         if gaussian_beam:
             spot_size_scale = kwargs.get("spot_size_scale", 1.0)
@@ -190,26 +229,6 @@ class Monitor(OpticalComponent):
                 std_distance = np.std(waist_distance_List)
                 ax.text(0, self.height / 2 * 0.8, f"Std(z)={std_distance:.4f}")
             #
-
-            annote_delta_pos = kwargs.get("annote_delta_pos", False)
-            if annote_delta_pos:
-                dy, dz = self.get_delta_pos()
-                std_y = np.std(dy)
-                std_z = np.std(dz)
-                # annote the std of scatter points in Y and Z
-                ax.text(
-                    0,
-                    self.height / 2 * 0.6,
-                    f"SX={std_y:.4f}, SY={std_z:.4f}",
-                )
-                # annote the mean of scatter points in Y and Z
-                mean_dy = np.mean(dy)
-                mean_dz = np.mean(dz)
-                ax.text(
-                    0,
-                    self.height / 2 * 0.4,
-                    f"MX={mean_dy:.4f}, MY={mean_dz:.4f}",
-                )
 
             annote_waist_std = kwargs.get("annote_waist_std", False)
             if annote_waist_std:

@@ -260,15 +260,29 @@ class Sphere(Surface):
 
     def within_boundary(self, P: np.ndarray) -> bool:
         x, y, z = P
-        return self.radius - self.height <= z and z <= self.radius
+        return self.radius - self.height <= x and x <= self.radius
 
     def parametric_boundary(self, t: Sequence[float], type: str) -> np.ndarray:
         theta = 2 * np.pi * t
+        # bottom circle
         r = np.sqrt(self.radius**2 - (self.radius - self.height) ** 2)
-        x = r * np.cos(theta)
-        y = r * np.sin(theta)
-        z = np.full_like(t, self.radius - self.height)
+        y = r * np.cos(theta)
+        z = r * np.sin(theta)
+        x = np.full_like(t, self.radius - self.height)
         points = np.vstack([x, y, z])
+        # curved top 1
+        theta_r = np.arccos((self.radius - self.height) / self.radius)
+        theta = (2 * theta_r) * (t - 0.5)
+        x = self.radius * np.cos(theta)
+        z = self.radius * np.sin(theta)
+        y = np.full_like(t, 0.0)
+        points = np.hstack([points, np.vstack([x, y, z])])
+        # curved top 2
+        x = self.radius * np.cos(theta)
+        y = self.radius * np.sin(theta)
+        z = np.full_like(t, 0.0)
+        points = np.hstack([points, np.vstack([x, y, z])])
+
         return points
 
     def get_bbox(self):
