@@ -16,6 +16,7 @@ class ComponentGroup(OpticalComponent):
         )  # xmin, xmax, ymin, ymax, zmin, zmax
         self.components = []
         self.monitors = []
+        self.rays = []
 
     def __repr__(self):
         return f"ComponentGroup(origin={self.origin}, transform_matrix={self.transform_matrix})"
@@ -28,6 +29,9 @@ class ComponentGroup(OpticalComponent):
         old_origin = self.origin
         self.origin = self.origin + np.dot(R, -localpoint) + localpoint
         #
+        for ray in self.rays:
+            lp = -(ray.origin - (old_origin + localpoint))
+            ray._RotAroundLocal(axis, lp, theta)
         for component in self.components:
             lp = -(component.origin - (old_origin + localpoint))
             component._RotAroundLocal(axis, lp, theta)
@@ -41,6 +45,8 @@ class ComponentGroup(OpticalComponent):
 
     def _Translate(self, direction, distance):
         self.origin += np.array(direction) * distance
+        for ray in self.rays:
+            ray._Translate(direction, distance)
         for component in self.components:
             component._Translate(direction, distance)
         for monitor in self.monitors:
@@ -66,6 +72,9 @@ class ComponentGroup(OpticalComponent):
             return tList[idx], new_rays_list[idx]
         else:
             return None, None
+
+    def add_rays(self, rays):
+        self.rays.extend(rays)
 
     def add_component(self, component):
         self.components.append(component)

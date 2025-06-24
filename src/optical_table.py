@@ -1,7 +1,8 @@
 from .optical_component import *
+from .component_group import *
 from .monitor import *
 import matplotlib.pyplot as plt
-import numpy as np, time
+import numpy as np, time, csv
 
 
 class OpticalTable:
@@ -154,3 +155,81 @@ class OpticalTable:
                 ax.set_zlim(roi[4], roi[5])
             aspect = kwargs.get("aspect", "equal")
             ax.set_aspect(aspect)
+
+    def gather_rays(self):
+        """
+        Gather all rays in the optical table.
+        """
+
+        def _repr_self_dict(ray):
+            d = {
+                "origin_x": ray.origin[0],
+                "origin_y": ray.origin[1],
+                "origin_z": ray.origin[2],
+                "tx": ray.direction[0],
+                "ty": ray.direction[1],
+                "tz": ray.direction[2],
+                "intensity": getattr(ray, "intensity", None),
+                "length": getattr(ray, "length", None),
+                "qo": getattr(ray, "qo", None),
+            }
+            return d
+
+        rays = []
+        for ray in self.rays:
+            rays.append(_repr_self_dict(ray))
+        return rays
+
+    def gather_components(
+        self, avoid_flatten_classname: List = [], ignore_classname: List = []
+    ) -> List[dict]:
+        """
+        Gather all components in the optical table, avoiding flattening if specified.
+        """
+        components = []
+        for component in self.components:
+            components.extend(
+                component.gather_components(
+                    avoid_flatten_classname=avoid_flatten_classname,
+                    ignore_classname=ignore_classname,
+                )
+            )
+        return components
+
+    def export_rays(self, filename: str):
+        """
+        Export rays to a file.
+        """
+        rays_traced = self.gather_rays()
+
+        print(f"Exporting rays to {filename} ...")
+
+        with open(filename, "w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            keys = rays_traced[0].keys() if rays_traced else []
+            writer.writerow(keys)
+            for ray in rays_traced:
+                writer.writerow(ray.values())
+
+    def export_components(
+        self,
+        filename: str,
+        avoid_flatten_classname: List = [],
+        ignore_classname: List = [],
+    ):
+        """
+        Export components to a file. Including its class, origin and normal vector
+        """
+        components = self.gather_components(
+            avoid_flatten_classname=avoid_flatten_classname,
+            ignore_classname=ignore_classname,
+        )
+
+        print(f"Exporting components to {filename} ...")
+
+        with open(filename, "w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            keys = components[0].keys() if components else []
+            writer.writerow(keys)
+            for component in components:
+                writer.writerow(component.values())

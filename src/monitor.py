@@ -164,8 +164,8 @@ class Monitor(OpticalComponent):
         annote_delta_pos = kwargs.get("annote_delta_pos", False)
         if annote_delta_pos:
             dy, dz = self.get_delta_pos()
-            std_y = np.std(dy)
-            std_z = np.std(dz)
+            std_y = np.std(dy) if len(dy) > 0 else 0.0
+            std_z = np.std(dz) if len(dz) > 0 else 0.0
             # annote the std of scatter points in Y and Z
             ax.text(
                 0,
@@ -173,8 +173,8 @@ class Monitor(OpticalComponent):
                 f"SX={std_y:.4f}, SY={std_z:.4f}",
             )
             # annote the mean of scatter points in Y and Z
-            mean_dy = np.mean(dy)
-            mean_dz = np.mean(dz)
+            mean_dy = np.mean(dy) if len(dy) > 0 else 0.0
+            mean_dz = np.mean(dz) if len(dz) > 0 else 0.0
             ax.text(
                 0,
                 self.height / 2 * 0.4,

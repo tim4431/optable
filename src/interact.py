@@ -48,7 +48,7 @@ class InteractiveOpticalTable:
         self.tunable_vars_setting: dict[str, list] = self.namespace["vars"]
         self.presets: dict[str, dict] | None = self.namespace.get("presets")
         self._plot_type = self.namespace.get("PLOT_TYPE", "Z").upper()
-        print(f"Plot type requested by setup: {self._plot_type}")
+        # print(f"Plot type requested by setup: {self._plot_type}")
 
         # Re‑create main axes in 3‑D if requested
         if self._plot_type == "3D":
@@ -193,17 +193,18 @@ class InteractiveOpticalTable:
 
         # ---------- redraw helper --------------------------------------
         def _redraw():
+            # print("Redrawing...")
             self._clear_axes()
             self.update_table(**self._sliders_to_params())
             if self.render:
                 plt.draw()
 
         def _on_slider_changed(_):
-            now = time.time()
-            if now - self.last_update_time < 1 / self.FPS:
-                return
-            self.last_update_time = now
             if not self.changing_preset:
+                now = time.time()
+                if now - self.last_update_time < 1 / self.FPS:
+                    return
+                self.last_update_time = now
                 _redraw()
 
         # attach callbacks
@@ -217,7 +218,7 @@ class InteractiveOpticalTable:
         # --------------------------------------------------------------
         # Finetune
         # --------------------------------------------------------------
-        FINETUNE_X, FINETUNE_Y = 0.78, 0.01
+        FINETUNE_X, FINETUNE_Y = 0.02, 0.01
         FINTUNE_DX, FINTUNE_DY = 0.15, 0.11
         finetune_ax = self.fig.add_axes(
             [FINETUNE_X, FINETUNE_Y, FINTUNE_DX, FINTUNE_DY]
@@ -352,11 +353,11 @@ class InteractiveOpticalTable:
             self.opt_progress_ax.grid(True)
 
             def _on_slider_changed_with_cost_update(_):
-                now = time.time()
-                if now - self.last_update_time < 1 / self.FPS:
-                    return
-                self.last_update_time = now
                 if not self.changing_preset:
+                    now = time.time()
+                    if now - self.last_update_time < 1 / self.FPS:
+                        return
+                    self.last_update_time = now
                     _redraw()
                     # 更新代价函数值显示
                     if hasattr(self, "cost_value_text"):
@@ -429,16 +430,25 @@ class InteractiveOpticalTable:
         for k, v in self._sliders_to_params().items():
             print(f"  {k} = {v}")
 
-        # Print final slider values as a raw dict for easy copy-paste
-        print("Dict Form:")
-        final_params = self._sliders_to_params()
-        print("Final slider values as dict:")
-        print("{")
-        for k, v in final_params.items():
-            print(f"    {repr(k)}: {repr(v)},")
+        # Print final slider values for easy copy, for example:
+        # sol0 = {
+        # "V2dX": [0.26746, -2, 2],
+        # "V2dY": [0, -0.02, 0.7],
+        # "V2dXMLA": [3.30596, 1, 15],
+        # "V2ADD_MLA": [1, None, None], # for Boolean parameters, use None for min/max
+
+        print("\nFinal parameters for copy-paste:")
+        print("sol0 = {")
+        for name, slider in self.sliders.items():
+            if isinstance(slider, Slider):
+                val = slider.val
+                vmin, vmax = slider.valmin, slider.valmax
+            else:
+                val = slider.get_status()[0]
+                vmin, vmax = None, None
+            print(f'    "{name}": [{val}, {vmin}, {vmax}],')
         print("}")
 
-    # ------------------------------------------------------------------ #
     #                       ───  BACK-END LOGIC  ───                      #
     # ------------------------------------------------------------------ #
 
@@ -616,12 +626,12 @@ class InteractiveOpticalTable:
 # Small CLI entry‑point ------------------------------------------------
 # ---------------------------------------------------------------------
 if __name__ == "__main__":
-    FILE_NAME = os.path.join(os.path.dirname(__file__), "../examples", "real_lenses.py")
+    FILE_NAME = os.path.join(os.path.dirname(__file__), "../demo", "vipa_2nd.py")
     MODE = "interact"  # 'interact' | 'optimize' | 'scan'
 
     table = InteractiveOpticalTable(fileName=FILE_NAME)
-    table._display_optimization = False  # enable cost function display
-    # table._display_optimization = True  # enable cost function display
+    # table._display_optimization = False  # enable cost function display
+    table._display_optimization = True  # enable cost function display
 
     match MODE:
         case "interact":

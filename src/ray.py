@@ -73,7 +73,7 @@ class Ray(Vector):
         #
 
     def __repr__(self):
-        return f"Ray(origin={self.origin}, direction={self.direction}, intensity={self.intensity}, length={self.length}, alive={self.alive})"
+        return f"Ray(origin={self.origin}, direction={self.direction}, intensity={self.intensity}, length={self.length}, alive={self.alive}, qo={self.qo})"
 
     @property
     def direction(self):
@@ -242,6 +242,7 @@ class Ray(Vector):
             start = self.origin
             end = start + self.direction * length
 
+            detailed_render = kwargs.get("detailed_render")
             ax.plot(
                 [start[0], end[0]],
                 [start[1], end[1]],
@@ -250,8 +251,8 @@ class Ray(Vector):
                 alpha=alpha,
                 linewidth=linewidth,
             )
+            #
             arrow = kwargs.get("arrow", False)
-
             if arrow:
                 # Add an arrow in the middle to indicate direction
                 midpoint = (start + end) / 2
@@ -281,31 +282,30 @@ class Ray(Vector):
                 n_vertices = 6  # Number of vertices per circle (polygon approximation)
 
                 # Compute the contour circles and store them in a list.
-                circles = []
-                spot_size_scale = kwargs.get("spot_size_scale", 1.0)
-                spots_size = self.spot_size(t) * spot_size_scale
-                for t, w in zip(t, spots_size):
-                    theta = np.linspace(0, 2 * np.pi, n_vertices, endpoint=False)
-                    center_pt = self.origin + t * self.direction
-                    surface_pt = (
-                        center_pt[
-                            :, np.newaxis
-                        ]  # Reshape center_pt to (3,1) for broadcasting
-                        + w
-                        * self.tangent_1[:, np.newaxis]
-                        * np.cos(theta)  # Shape (3, n_vertices)
-                        + w
-                        * self.tangent_2[:, np.newaxis]
-                        * np.sin(theta)  # Shape (3, n_vertices)
-                    )
-                    circle = surface_pt.T  # Transpose to get (n_vertices, 3) shape
-                    # print(circle.shape)
-                    # circle = np.column_stack((x, y, z))
-                    circles.append(circle)
+                if detailed_render:
+                    circles = []
+                    spot_size_scale = kwargs.get("spot_size_scale", 1.0)
+                    spots_size = self.spot_size(t) * spot_size_scale
+                    for t, w in zip(t, spots_size):
+                        theta = np.linspace(0, 2 * np.pi, n_vertices, endpoint=False)
+                        center_pt = self.origin + t * self.direction
+                        surface_pt = (
+                            center_pt[
+                                :, np.newaxis
+                            ]  # Reshape center_pt to (3,1) for broadcasting
+                            + w
+                            * self.tangent_1[:, np.newaxis]
+                            * np.cos(theta)  # Shape (3, n_vertices)
+                            + w
+                            * self.tangent_2[:, np.newaxis]
+                            * np.sin(theta)  # Shape (3, n_vertices)
+                        )
+                        circle = surface_pt.T  # Transpose to get (n_vertices, 3) shape
+                        # print(circle.shape)
+                        # circle = np.column_stack((x, y, z))
+                        circles.append(circle)
 
-                # Create side surfaces connecting adjacent circles.
-                render_gaussian_faces = kwargs.get("render_gaussian_faces")
-                if render_gaussian_faces:
+                    # Create side surfaces connecting adjacent circles.
                     faces = []
                     for i in range(len(circles) - 1):
                         c1 = circles[i]
@@ -319,7 +319,7 @@ class Ray(Vector):
 
                     # Create a Poly3DCollection for the side surfaces.
                     side_collection = Poly3DCollection(
-                        faces, facecolors=color, edgecolors=None, alpha=alpha / 2
+                        faces, facecolors="red", edgecolors=None, alpha=alpha / 2
                     )
                     ax.add_collection3d(side_collection)
 

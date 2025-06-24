@@ -164,6 +164,31 @@ class Path:
         return (min(x) - 0.3, max(x) + 0.3, min(y) - 0.3, max(y) + 0.3)
 
 
+def run_code_block(filepath, marker, globals=None):
+    with open(filepath, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    start_marker = "# >>> " + marker
+    end_marker = "# <<< " + marker
+    inside_block = False
+    code_lines = []
+    for line in lines:
+        if start_marker in line:
+            inside_block = True
+            continue
+        if end_marker in line:
+            break
+        if inside_block:
+            code_lines.append(line)
+
+    print(
+        f"Loading code block {len(code_lines)} lines from {filepath} between markers: {start_marker} and {end_marker}"
+    )
+
+    code = "".join(code_lines)
+    exec(code, globals)
+
+
 # path = Path([[0, 0], [1, 0], [1, 1], [0, 1]])
 # print(path.round_trip)
 # # print(path.calc_coord(0.5))

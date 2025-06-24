@@ -18,6 +18,7 @@ class OpticalComponent(Vector):
             None,
             None,
         )  # xmin, xmax, ymin, ymax, zmin, zmax
+        self.render_obj = kwargs.get("render_obj", True)
         self.render_comp_vec = kwargs.get("render_comp_vec", False)
 
     def __repr__(self):
@@ -170,6 +171,8 @@ class OpticalComponent(Vector):
             type: str, the type of rendering (e.g., "Z" for 2D, "3D" for 3D).
             kwargs: Additional arguments for customization (e.g., edge color).
         """
+        if not self.render_obj:
+            return
         # Get edge color and line width from kwargs
         color = kwargs.get("color", "black")
         linewidth = kwargs.get("linewidth", 2)
@@ -264,6 +267,39 @@ class OpticalComponent(Vector):
         obj.transform_matrix = self.transform_matrix
         return obj
 
+    def gather_components(
+        self, avoid_flatten_classname: List = [], ignore_classname: List = []
+    ) -> List:
+        """
+        Gather all components in the optical component.
+        """
+
+        def _repr_self_dict():
+            d = {
+                "class": self.__class__.__name__,
+                "origin_x": self.origin[0],
+                "origin_y": self.origin[1],
+                "origin_z": self.origin[2],
+                "normal_x": self.normal[0],
+                "normal_y": self.normal[1],
+                "normal_z": self.normal[2],
+            }
+            return d
+
+        components = []
+        if self.__class__.__name__ not in ignore_classname:
+            components.append(_repr_self_dict())
+        if hasattr(self, "components"):
+            for component in self.components:
+                if self.__class__.__name__ not in avoid_flatten_classname:
+                    components.extend(
+                        component.gather_components(
+                            avoid_flatten_classname=avoid_flatten_classname,
+                            ignore_classname=ignore_classname,
+                        )
+                    )
+        return components
+
 
 class Nothing(OpticalComponent):
     def __init__(self, origin, **kwargs):
@@ -285,7 +321,7 @@ class Block(OpticalComponent):
     def __init__(
         self,
         origin,
-        hole: Surface,
+        hole: Union[Surface | None] = None,
         width: float = 1.0,
         height: float = 1.0,
         **kwargs,
@@ -293,7 +329,11 @@ class Block(OpticalComponent):
         super().__init__(origin, **kwargs)
         self.width = width
         self.height = height
-        self.surface = Rectangle(width, height).subtract(hole)
+        self.surface = (
+            Rectangle(width, height).subtract(hole)
+            if hole is not None
+            else Rectangle(width, height)
+        )
         self._edge_color = "black"
 
     def interact_local(self, ray):
