@@ -85,6 +85,10 @@ class Ray(Vector):
         # print(self._direction)
 
     @property
+    def transform_matrix(self):
+        return self._vector_to_R(self.direction)
+
+    @property
     def tangent_1(self):
         n = self.direction
         if n[0] == 0 and n[1] == 0:

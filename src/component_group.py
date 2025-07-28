@@ -100,28 +100,71 @@ class GlassSlab(ComponentGroup):
         n2=1.5,
         reflectivity=0,
         transmission=1,
+        **kwargs,
     ):
-        super().__init__(origin)
+        super().__init__(origin, **kwargs)
         self.add_component(
             SquareRefractive(
-                origin + np.array([+thickness / 2, 0, 0]),
+                origin + np.array([0, 0, 0]),
                 width,
                 height,
                 n1,
                 n2,
                 reflectivity=reflectivity,
                 transmission=transmission,
+                **kwargs,
             )
         )
         self.add_component(
             SquareRefractive(
-                origin + np.array([-thickness / 2, 0, 0]),
+                origin + np.array([-thickness, 0, 0]),
                 width,
                 height,
                 n2,
                 n1,
                 reflectivity=reflectivity,
                 transmission=transmission,
+                **kwargs,
+            )
+        )
+
+
+class CircleGlassSlab(ComponentGroup):
+    def __init__(
+        self,
+        origin,
+        radius=1.0,
+        thickness=1.0,
+        n1=1.0,
+        n2=1.5,
+        reflectivity1=0,
+        transmission1=1,
+        reflectivity2=0,
+        transmission2=1,
+        **kwargs,
+    ):
+        super().__init__(origin, **kwargs)
+        self.radius = radius
+        self.add_component(
+            CircleRefractive(
+                origin + np.array([0, 0, 0]),
+                radius,
+                n1,
+                n2,
+                reflectivity=reflectivity1,
+                transmission=transmission1,
+                **kwargs,
+            )
+        )
+        self.add_component(
+            CircleRefractive(
+                origin + np.array([-thickness, 0, 0]),
+                radius,
+                n2,
+                n1,
+                reflectivity=reflectivity2,
+                transmission=transmission2,
+                **kwargs,
             )
         )
 

@@ -9,6 +9,7 @@ class Monitor(OpticalComponent):
         self.surface = Rectangle(width, height)
         self._edge_color = "orange"
         self.data = []  # list of tuples (P, intensity)
+        self.name = kwargs.get("name", None)
 
     @property
     def ndata(self):
@@ -91,7 +92,7 @@ class Monitor(OpticalComponent):
 
         return waist_distance_List
 
-    def get_waist(self):
+    def get_beam_waist(self):
         tList = self.tList
         rList = self.rList
         waist_List = []
@@ -220,19 +221,16 @@ class Monitor(OpticalComponent):
                         color="black",
                     )
                 _sign = (_sign + 1 + 7) % 7 - 3  # alternate sign for waist annotation
+            #
             annote_dis_std = kwargs.get("annote_dis_std", False)
             if annote_dis_std:
                 waist_distance_List = self.get_waist_distance()
-                # print(
-                #     f"Waist distance: {waist_distance_List}, std={np.std(waist_distance_List):.4f}"
-                # )
                 std_distance = np.std(waist_distance_List)
                 ax.text(0, self.height / 2 * 0.8, f"Std(z)={std_distance:.4f}")
             #
-
             annote_waist_std = kwargs.get("annote_waist_std", False)
             if annote_waist_std:
-                waist_List = self.get_waist()
+                waist_List = self.get_beam_waist()
                 std_waist = np.std(waist_List)
                 mean_waist = np.mean(waist_List)
                 ax.text(
@@ -240,6 +238,19 @@ class Monitor(OpticalComponent):
                     self.height / 2 * 0.2,
                     f"Std(w)={std_waist*1e4:.4f}, M(w)={mean_waist*1e4:.4f}",
                 )
+            #
+            annote_beam_tilt = kwargs.get("annote_beam_tilt", False)
+            if annote_beam_tilt:
+                tYList = self.tYList
+                tZList = self.tZList
+                if len(tYList) > 0 and len(tZList) > 0:
+                    std_tY = np.std(tYList)
+                    std_tZ = np.std(tZList)
+                    ax.text(
+                        0,
+                        self.height / 2 * 0.0,
+                        f"Std(tY)={std_tY:.4f}, Std(tZ)={std_tZ:.4f}",
+                    )
 
         ax.set_xlim(-self.width / 2, self.width / 2)
         ax.set_ylim(-self.height / 2, self.height / 2)

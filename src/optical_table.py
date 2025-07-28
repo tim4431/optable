@@ -163,15 +163,13 @@ class OpticalTable:
 
         def _repr_self_dict(ray):
             d = {
-                "origin_x": ray.origin[0],
-                "origin_y": ray.origin[1],
-                "origin_z": ray.origin[2],
-                "tx": ray.direction[0],
-                "ty": ray.direction[1],
-                "tz": ray.direction[2],
-                "intensity": getattr(ray, "intensity", None),
-                "length": getattr(ray, "length", None),
-                "qo": getattr(ray, "qo", None),
+                "origin": to_mathematical_str(str(ray.origin.tolist())),
+                "transform_matrix": to_mathematical_str(
+                    str(ray.transform_matrix.tolist())
+                ),
+                "intensity": get_attr_str(ray, "intensity", "None"),
+                "length": get_attr_str(ray, "length", "None"),
+                "qo": to_mathematical_str(str(get_attr_str(ray, "qo", "None"))),
             }
             return d
 

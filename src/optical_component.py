@@ -20,6 +20,11 @@ class OpticalComponent(Vector):
         )  # xmin, xmax, ymin, ymax, zmin, zmax
         self.render_obj = kwargs.get("render_obj", True)
         self.render_comp_vec = kwargs.get("render_comp_vec", False)
+        self.name = kwargs.get("name", None)
+        self.label = kwargs.get("label", None)
+        self.label_position = kwargs.get(
+            "label_position", [1, 0, 0]
+        )  # [dx,dy] or [dx,dy,dz]
 
     def __repr__(self):
         return f"OpticalComponent(origin={self.origin}, transform_matrix=\n{self.transform_matrix})"
@@ -178,6 +183,8 @@ class OpticalComponent(Vector):
         linewidth = kwargs.get("linewidth", 2)
         global_x, global_y, global_z = self._get_boundary_points(type)
         detailed_render = kwargs.get("detailed_render", False)
+        label = kwargs.get("label", None)
+        label_fontsize = kwargs.get("label_fontsize", 10)
         #
         if type == "Z":
             ax.plot(
@@ -198,6 +205,15 @@ class OpticalComponent(Vector):
                     scale=2,
                     scale_units="xy",
                 )
+            if label and self.label:
+                if self.label_position is not None:
+                    ax.text(
+                        self.origin[0] + self.label_position[0],
+                        self.origin[1] + self.label_position[1],
+                        self.label,
+                        color=color,
+                        fontsize=label_fontsize,
+                    )
 
         elif type == "3D":
             ax.plot(
@@ -276,13 +292,16 @@ class OpticalComponent(Vector):
 
         def _repr_self_dict():
             d = {
+                "name": get_attr_str(self, "name", "None"),
                 "class": self.__class__.__name__,
-                "origin_x": self.origin[0],
-                "origin_y": self.origin[1],
-                "origin_z": self.origin[2],
-                "normal_x": self.normal[0],
-                "normal_y": self.normal[1],
-                "normal_z": self.normal[2],
+                "origin": to_mathematical_str(str(self.origin.tolist())),
+                "transform_matrix": to_mathematical_str(
+                    str(self.transform_matrix.tolist())
+                ),
+                "radius": get_attr_str(self, "radius", "None"),
+                "width": get_attr_str(self, "width", "None"),
+                "height": get_attr_str(self, "height", "None"),
+                "focal_length": get_attr_str(self, "focal_length", "None"),
             }
             return d
 
@@ -434,7 +453,8 @@ class BaseRefraciveSurface(OpticalComponent):
             normal = -normal
             n1, n2 = n2, n1
         # now we are always treating the case incident from n2 to n1
-        qo = None if ray.qo is None else ray.q_at_z(t) * n1 / n2
+        qo_refl = None if ray.qo is None else ray.q_at_z(t)
+        qo_trans = None if ray.qo is None else ray.q_at_z(t) * n1 / n2
         r_n = np.dot(ray.direction, normal)
         r_t = ray.direction - r_n * normal
         cos_theta_i = r_n
@@ -447,7 +467,7 @@ class BaseRefraciveSurface(OpticalComponent):
                 origin=P,
                 direction=transmitted_direction,
                 intensity=ray.intensity * self.transmission,
-                qo=qo,
+                qo=qo_trans,
                 n=n1,
             )
             rays.append(transmitted_ray)
@@ -459,7 +479,7 @@ class BaseRefraciveSurface(OpticalComponent):
                 origin=P,
                 direction=reflected_direction,
                 intensity=ray.intensity,
-                qo=qo,
+                qo=qo_refl,
             )
             rays.append(reflected_ray)
 
@@ -471,7 +491,7 @@ class BaseRefraciveSurface(OpticalComponent):
                 origin=P,
                 direction=reflected_direction,
                 intensity=ray.intensity * self.reflectivity,
-                qo=qo,
+                qo=qo_refl,
             )
             rays.append(reflected_ray)
         #
@@ -591,17 +611,47 @@ class SphereRefractive(BaseRefraciveSurface):
         self.surface = Sphere(radius, height)
 
 
-class BeamSplitter(Mirror):
-    def __init__(self, origin, radius: float = 0.5, eta: float = 0.5, **kwargs):
-        reflectivity = np.sqrt(eta)
-        transmission = np.sqrt(1 - eta)
+class BeamSplitter(SquareMirror):
+    def __init__(self, origin, width=1.0, height=1.0, eta: float = 0.5, **kwargs):
         super().__init__(
             origin,
-            radius=radius,
-            reflectivity=reflectivity,
-            transmission=transmission,
+            width=width,
+            height=height,
+            reflectivity=np.sqrt(eta),
+            transmission=np.sqrt(1 - eta),
             **kwargs,
         )
+        edgecolor = kwargs.get("edgecolor", Color.SCIENCE_BLUE_DARK)
+        self._edge_color = edgecolor
+
+    def render(self, ax, type, **kwargs):
+        """
+        Render the beam splitter with lightblue, and a deep blue as frame.
+        """
+        super().render(ax, type, **kwargs)
+        facecolor = kwargs.get("facecolor", Color.SCIENCE_BLUE_LIGHT)
+        linewidth = kwargs.get("linewidth", 2)
+        # draw the outer frame with edgecolor, inner cube with facecolor
+        if type == "Z":
+            rect_pts = [
+                [-self.width / 2, 0, 0],
+                [0, -self.width / 2, 0],
+                [self.width / 2, 0, 0],
+                [0, self.width / 2, 0],
+            ]
+            print(np.array(rect_pts).shape)
+            rect_pts = self.transform_matrix @ np.transpose(
+                np.array(rect_pts)
+            ) + np.array(self.origin).reshape(-1, 1)
+            print(rect_pts.shape)
+            ax.add_patch(
+                plt.Polygon(
+                    np.transpose(rect_pts)[:, :2],
+                    facecolor=facecolor,
+                    edgecolor=self._edge_color,
+                    linewidth=linewidth,
+                )
+            )
 
 
 class Lens(OpticalComponent):
@@ -635,8 +685,9 @@ class Lens(OpticalComponent):
         f = self.focal_length
         # lens equation: v' = v - P/f
         v = v0 - P / f
-        # deflected_ray = Ray(P, v, ray.intensity * self.transmission)
-        deflected_ray = ray.copy(origin=P, direction=v, intensity=ray.intensity, qo=qo)
+        deflected_ray = ray.copy(
+            origin=P, direction=v, intensity=ray.intensity * self.transmission, qo=qo
+        )
         rays = [deflected_ray]
         return rays
 

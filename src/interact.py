@@ -100,13 +100,13 @@ class InteractiveOpticalTable:
 
     def _get_slider_ax(self, idx: int):
         return self.fig.add_axes(
-            [0.8, self.slider_axes_top * (1 - idx / 25), 0.1, 0.03]
+            [0.8, self.slider_axes_top * (1 - idx / 30), 0.1, 0.03]
         )
 
     def _get_checkbox_ax(self, idx: int):
         # tiny square to the left of the slider
         return self.fig.add_axes(
-            [0.97, self.slider_axes_top * (1 - idx / 25) + 0.005, 0.03, 0.03]
+            [0.97, self.slider_axes_top * (1 - idx / 30) + 0.005, 0.03, 0.03]
         )
 
     # ---- cost-function discovery -------------------------------------
@@ -630,8 +630,8 @@ if __name__ == "__main__":
     MODE = "interact"  # 'interact' | 'optimize' | 'scan'
 
     table = InteractiveOpticalTable(fileName=FILE_NAME)
-    # table._display_optimization = False  # enable cost function display
-    table._display_optimization = True  # enable cost function display
+    table._display_optimization = False  # enable cost function display
+    # table._display_optimization = True  # enable cost function display
 
     match MODE:
         case "interact":

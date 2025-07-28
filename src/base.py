@@ -1,6 +1,7 @@
 import numpy as np
 from typing import List, Tuple, Union, Sequence
 import copy
+from dataclasses import dataclass
 import matplotlib.pyplot as plt
 
 
@@ -70,8 +71,26 @@ class Vector(Base):
 
         return R
 
+    def _vector_to_R(self, t: np.ndarray) -> np.ndarray:
+        """Return 3×3 rotation matrix taking (1,0,0) to t = (tx,ty,tz)."""
+        v = self._normalize_vector(t)
+
+        # Special cases: colinear with ±x
+        if np.allclose(v, [1, 0, 0]):  # already aligned
+            return np.eye(3)
+        if np.allclose(v, [-1, 0, 0]):  # opposite; rotate 180° about y-axis
+            return np.array([[-1, 0, 0], [0, -1, 0], [0, 0, 1]])
+
+        k = np.cross([1, 0, 0], v)
+        k = k / np.linalg.norm(k)
+        K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
+        c = v[0]  # cos_theta
+        R = c * np.eye(3) + (1 - c) * np.outer(k, k) + np.sin(np.arccos(c)) * K
+        return R
+
     def _RotAroundCenter(self, axis, theta):
-        return self
+        # return self
+        raise NotImplementedError("_RotAroundCenter method not implemented")
 
     def RotX(self, theta):
         return self._RotAroundCenter([1, 0, 0], theta)
@@ -164,6 +183,14 @@ class Path:
         return (min(x) - 0.3, max(x) + 0.3, min(y) - 0.3, max(y) + 0.3)
 
 
+@dataclass(frozen=True)
+class Color:
+    SCIENCE_RED_LIGHT: str = "#febfbe"
+    SCIENCE_RED_DARK: str = "#fa331a"
+    SCIENCE_BLUE_LIGHT: str = "#bdd3ec"
+    SCIENCE_BLUE_DARK: str = "#2556ae"
+
+
 def run_code_block(filepath, marker, globals=None):
     with open(filepath, "r", encoding="utf-8") as f:
         lines = f.readlines()
@@ -187,6 +214,18 @@ def run_code_block(filepath, marker, globals=None):
 
     code = "".join(code_lines)
     exec(code, globals)
+
+
+def to_mathematical_str(s):
+    return s.replace("[", "{").replace("]", "}").replace("e", "*10^").replace("j", "I")
+
+
+def get_attr_str(obj, attr_name, default=None):
+    return (
+        default
+        if not hasattr(obj, attr_name) or not getattr(obj, attr_name)
+        else getattr(obj, attr_name)
+    )
 
 
 # path = Path([[0, 0], [1, 0], [1, 1], [0, 1]])
