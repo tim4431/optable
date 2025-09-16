@@ -170,6 +170,7 @@ class OpticalTable:
                 "intensity": get_attr_str(ray, "intensity", "None"),
                 "length": get_attr_str(ray, "length", "None"),
                 "qo": to_mathematical_str(str(get_attr_str(ray, "qo", "None"))),
+                "n": to_mathematical_str(str(get_attr_str(ray, "n", "None"))),
             }
             return d
 

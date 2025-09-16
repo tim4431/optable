@@ -36,6 +36,24 @@ class Monitor(OpticalComponent):
         return np.array([r.direction for r in self.rList])
 
     @property
+    def sortYZIndex(self):
+        # lexsort
+        return np.lexsort((self.zList, self.yList))
+        # # first sort by z, group by 6, and within each group sort by y
+        # GROUP_SIZE = 6
+        # idx = np.argsort(self.zList)
+        # for i in range(0, len(idx), GROUP_SIZE):
+        #     group = idx[i : i + GROUP_SIZE]
+        #     group_sorted = group[np.argsort(self.yList[group])]
+        #     idx[i : i + GROUP_SIZE] = group_sorted
+
+        # return idx
+
+    @property
+    def directionListSortByYZ(self):
+        return self.directionList[self.sortYZIndex]
+
+    @property
     def tYList(self):
         directionList = self.directionList  # n*3
         # y component of the direction vector is the second component
@@ -48,6 +66,15 @@ class Monitor(OpticalComponent):
         # z component of the direction vector is the third component
         tZList = directionList[:, 2]  # n
         return tZList
+
+    @property
+    def tYListSortByYZ(self):
+        return self.directionListSortByYZ[:, 1]
+
+    @property
+    def tZListSortByYZ(self):
+        # sort the tZList by y and z components
+        return self.directionListSortByYZ[:, 2]
 
     def interact_local(self, ray):
         return [ray]
@@ -182,6 +209,17 @@ class Monitor(OpticalComponent):
                 f"MX={mean_dy:.4f}, MY={mean_dz:.4f}",
             )
         #
+        annote_yz_index = kwargs.get("annote_yz_index", False)
+        if annote_yz_index:
+            sort_index = self.sortYZIndex
+            for i, (y, z) in enumerate(zip(yList[sort_index], zList[sort_index])):
+                ax.text(
+                    y,
+                    z,
+                    f"{i}",
+                    fontsize=8,
+                    color="black",
+                )
         # GAUSSIAN BEAM
         gaussian_beam = kwargs.get("gaussian_beam", False)
         if gaussian_beam:
@@ -259,3 +297,23 @@ class Monitor(OpticalComponent):
         if hasattr(self, "name") and self.name is not None:
             ax.set_title(str(self.name))
         ax.set_aspect("auto")
+
+    def render_delta_pos_y(self, ax, **kwargs):
+        dy, dz = self.get_delta_pos()
+        # bar plot of dy
+        ax.bar(np.arange(len(dy)), dy, **kwargs)
+        ax.set_ylim(np.min(dy) * 0.8, np.max(dy) * 1.2)
+        ax.set_xlabel("Index")
+        ax.set_ylabel("Delta Y")
+        ax.set_title("Delta Y Position")
+        ax.set_xticks(np.arange(len(dy)))
+        ax.set_xticklabels([f"{i}" for i in range(len(dy))])
+
+    def render_tilt_y(self, ax, **kwargs):
+        tYList = self.tYListSortByYZ
+        ax.bar(np.arange(len(tYList)), tYList, **kwargs)
+        ax.set_xlabel("Index")
+        ax.set_ylabel("Tilt Y")
+        ax.set_title("Tilt Y Position")
+        ax.set_xticks(np.arange(len(tYList)))
+        ax.set_xticklabels([f"{i}" for i in range(len(tYList))])

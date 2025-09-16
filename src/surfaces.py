@@ -259,8 +259,9 @@ class Sphere(Surface):
         return P / self.radius
 
     def within_boundary(self, P: np.ndarray) -> bool:
+        EPS = 1e-12
         x, y, z = P
-        return self.radius - self.height <= x and x <= self.radius
+        return self.radius - self.height - EPS <= x and x <= self.radius + EPS
 
     def parametric_boundary(self, t: Sequence[float], type: str) -> np.ndarray:
         theta = 2 * np.pi * t

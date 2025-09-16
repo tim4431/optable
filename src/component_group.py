@@ -205,3 +205,25 @@ class PlanoConvexLens(ComponentGroup):
             origin=self.origin, radius=diameter / 2, n1=n, n2=1.0, **kwargs
         )
         self.add_component(flat_face)
+
+
+class BiConvexLens(ComponentGroup):
+    def __init__(self, origin, R1, R2, CT, diameter, n, **kwargs):
+        super().__init__(origin)
+        o1 = np.array([R1, 0, 0]) + self.origin
+        o2 = np.array([-R2 + CT, 0, 0]) + self.origin
+        height_curve1 = R1 - np.sqrt(R1**2 - (diameter / 2) ** 2)
+        height_curve2 = R2 - np.sqrt(R2**2 - (diameter / 2) ** 2)
+        curved_face1 = SphereRefractive(
+            origin=o1, radius=R1, height=height_curve1, n1=1.0, n2=n, **kwargs
+        ).RotZ(np.pi)
+        curved_face2 = SphereRefractive(
+            origin=o2,
+            radius=R2,
+            height=height_curve2,
+            n1=1.0,
+            n2=n,
+            **kwargs,
+        )
+        self.add_component(curved_face1)
+        self.add_component(curved_face2)

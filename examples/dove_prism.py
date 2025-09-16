@@ -7,7 +7,7 @@ PLOT_TYPE = "3D"
 if __name__ == "__main__":
     fig = plt.figure(figsize=(12, 6))
     gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])
-    ax0 = plt.subplot(gs[0])
+    ax0 = plt.subplot(gs[0], projection="3d")
     gs1 = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=gs[1])
     ax1 = [plt.subplot(gs1[i]) for i in range(3)]
 

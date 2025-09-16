@@ -135,6 +135,7 @@ class OpticalComponent(Vector):
                 return self.surface.f(Pt)
 
             tList = self._find_zero(f, 0, 1e2)
+
             #
             if len(tList) == 0:
                 return None, None
@@ -146,6 +147,7 @@ class OpticalComponent(Vector):
                 else:
                     valid_mask = valid_mask_0
                 tvalid = tList[valid_mask]
+                #
                 for t in np.sort(tvalid):
                     P = ray.origin + t * ray.direction
                     if self.surface.within_boundary(P):
@@ -264,6 +266,8 @@ class OpticalComponent(Vector):
         else:
             local_ray = self.to_local_coordinates(ray)
             P, t = self.intersect_point_local(local_ray)
+            #
+
             if P is None:
                 return None, None
             else:
@@ -448,33 +452,60 @@ class BaseRefraciveSurface(OpticalComponent):
         n1, n2 = self.n1(ray.wavelength), self.n2(ray.wavelength)
         #
         rays = []
-        # take n2 to n1 as normal>0
+        #
+        ROC = self.roc if hasattr(self, "roc") else np.inf
         if np.dot(ray.direction, normal) < 0:  # incident from n1 to n2
-            normal = -normal
-            n1, n2 = n2, n1
-        # now we are always treating the case incident from n2 to n1
-        qo_refl = None if ray.qo is None else ray.q_at_z(t)
-        qo_trans = None if ray.qo is None else ray.q_at_z(t) * n1 / n2
+            nin, nout = n1, n2
+        else:  # incident from n2 to n1
+            nin, nout = n2, n1
+            ROC = -ROC  # change the sign of ROC
+        #
+        ABCD_refraction = np.array([[1, 0], [(nin - nout) / (ROC * nout), nin / nout]])
+        ABCD_reflection = np.array([[1, 0], [2 / ROC, 1]])
+
+        #
+        if ray.qo is not None:
+            qin = ray.q_at_z(t)
+            qo_trans = (ABCD_refraction[0, 0] * qin + ABCD_refraction[0, 1]) / (
+                ABCD_refraction[1, 0] * qin + ABCD_refraction[1, 1]
+            )
+        else:
+            qo_trans = None
+        #
+        if ray.qo is not None:
+            qin = ray.q_at_z(t)
+            qo_refl = (ABCD_reflection[0, 0] * qin + ABCD_reflection[0, 1]) / (
+                ABCD_reflection[1, 0] * qin + ABCD_reflection[1, 1]
+            )
+        else:
+            qo_refl = None
+
         r_n = np.dot(ray.direction, normal)
         r_t = ray.direction - r_n * normal
+        if r_n > 0:
+            transmitted_normal = normal
+        else:
+            transmitted_normal = -normal
         cos_theta_i = r_n
+        cos_theta_i = np.clip(cos_theta_i, -1, 1)  # avoid numerical issues
         sin_theta_i = np.sqrt(1 - cos_theta_i**2)
-        sin_theta_t = (n2 * sin_theta_i) / n1
+        sin_theta_t = (nin * sin_theta_i) / nout
         if sin_theta_t < 1:
             cos_theta_t = np.sqrt(1 - sin_theta_t**2)
-            transmitted_direction = (n2 / n1) * r_t + cos_theta_t * normal
+            transmitted_direction = (
+                nin / nout
+            ) * r_t + cos_theta_t * transmitted_normal
             transmitted_ray = ray.copy(
                 origin=P,
                 direction=transmitted_direction,
                 intensity=ray.intensity * self.transmission,
                 qo=qo_trans,
-                n=n1,
+                n=nout,
             )
             rays.append(transmitted_ray)
         else:
             # total internal reflection
-            normal = -normal
-            reflected_direction = ray.direction + 2 * cos_theta_i * normal
+            reflected_direction = ray.direction + 2 * cos_theta_i * (-normal)
             reflected_ray = ray.copy(
                 origin=P,
                 direction=reflected_direction,
@@ -485,8 +516,7 @@ class BaseRefraciveSurface(OpticalComponent):
 
         #
         if self.reflectivity > 0:
-            normal = -normal
-            reflected_direction = ray.direction + 2 * cos_theta_i * normal
+            reflected_direction = ray.direction + 2 * cos_theta_i * (-normal)
             reflected_ray = ray.copy(
                 origin=P,
                 direction=reflected_direction,
@@ -608,6 +638,7 @@ class SphereRefractive(BaseRefraciveSurface):
         )
         self.radius = radius
         self.height = height
+        self.roc = radius
         self.surface = Sphere(radius, height)
 
 

@@ -626,7 +626,7 @@ class InteractiveOpticalTable:
 # Small CLI entry‑point ------------------------------------------------
 # ---------------------------------------------------------------------
 if __name__ == "__main__":
-    FILE_NAME = os.path.join(os.path.dirname(__file__), "../demo", "vipa_2nd.py")
+    FILE_NAME = os.path.join(os.path.dirname(__file__), "../demo", "vipa_assembly.py")
     MODE = "interact"  # 'interact' | 'optimize' | 'scan'
 
     table = InteractiveOpticalTable(fileName=FILE_NAME)

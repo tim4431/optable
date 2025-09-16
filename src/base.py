@@ -217,6 +217,8 @@ def run_code_block(filepath, marker, globals=None):
 
 
 def to_mathematical_str(s):
+    if s == "None":
+        return "None"
     return s.replace("[", "{").replace("]", "}").replace("e", "*10^").replace("j", "I")
 
 
