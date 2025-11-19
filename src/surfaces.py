@@ -47,29 +47,21 @@ class Surface(Base):
             max(bbox1[5], bbox2[5]),
         )
 
-    def solve_crosssection_ray_bbox(self, ray_origin, ray_direction) -> Tuple[float]:
-        """for each set of bbox plane, solve the intersection with the ray [t1,t2]
-        then the intersection point should be intersection of [t1x,t2x], [t1y,t2y], [t1z,t2z]
-        return [t1, t2], if no intersection return [0, inf]
-        """
-        bbox = self.get_bbox()
-        t1, t2 = 0, np.inf
-        for i in range(3):
-            if abs(ray_direction[i]) < 1e-12:
-                # parallel
-                if not (bbox[2 * i] <= ray_origin[i] <= bbox[2 * i + 1]):
-                    # outside the bbox
-                    return 0, np.inf
-            else:
-                t1i = (bbox[2 * i] - ray_origin[i]) / ray_direction[i]
-                t2i = (bbox[2 * i + 1] - ray_origin[i]) / ray_direction[i]
-                if t1i > t2i:
-                    t1i, t2i = t2i, t1i
+    def merge_bboxs(self, bboxs):
+        return (
+            np.min([b[0] for b in bboxs]),
+            np.max([b[1] for b in bboxs]),
+            np.min([b[2] for b in bboxs]),
+            np.max([b[3] for b in bboxs]),
+            np.min([b[4] for b in bboxs]),
+            np.max([b[5] for b in bboxs]),
+        )
 
-                t1 = max(t1, t1i)
-                t2 = min(t2, t2i)
-        #
-        return t1, t2
+    def solve_crosssection_ray_bbox_local(
+        self, ray_origin, ray_direction
+    ) -> Tuple[float]:
+        bbox_local = self.get_bbox_local()
+        return solve_crosssection_ray_bbox(bbox_local, ray_origin, ray_direction)
 
 
 class Point(Surface):
@@ -89,7 +81,7 @@ class Point(Surface):
     def parametric_boundary(self, t: Sequence[float], type: str) -> np.ndarray:
         return np.zeros((3, len(t)))
 
-    def get_bbox(self):
+    def get_bbox_local(self):
         return (0, 0, 0, 0, 0, 0)
 
 
@@ -115,12 +107,12 @@ class Plane(Surface):
                 [self.parametric_boundary(t, type), other.parametric_boundary(t, type)]
             )
 
-        def get_bbox():
-            return self.merge_bbox(self.get_bbox(), other.get_bbox())
+        def get_bbox_local():
+            return self.merge_bbox(self.get_bbox_local(), other.get_bbox_local())
 
         obj.within_boundary = within_boundary
         obj.parametric_boundary = parametric_boundary
-        obj.get_bbox = get_bbox
+        obj.get_bbox_local = get_bbox_local
         return obj
 
     def subtract(self, other):
@@ -134,12 +126,12 @@ class Plane(Surface):
                 [self.parametric_boundary(t, type), other.parametric_boundary(t, type)]
             )
 
-        def get_bbox():
-            return self.merge_bbox(self.get_bbox(), other.get_bbox())
+        def get_bbox_local():
+            return self.merge_bbox(self.get_bbox_local(), other.get_bbox_local())
 
         obj.within_boundary = within_boundary
         obj.parametric_boundary = parametric_boundary
-        obj.get_bbox = get_bbox
+        obj.get_bbox_local = get_bbox_local
         return obj
 
 
@@ -164,7 +156,7 @@ class Circle(Plane):
         points = np.vstack([x, y, z])
         return points
 
-    def get_bbox(self):
+    def get_bbox_local(self):
         return (0, 0, -self.radius, self.radius, -self.radius, self.radius)
 
 
@@ -205,7 +197,7 @@ class Rectangle(Plane):
         points = np.vstack([x, y, z])
         return points
 
-    def get_bbox(self):
+    def get_bbox_local(self):
         return (
             0,
             0,
@@ -277,7 +269,7 @@ class Cylinder(Surface):
         points = np.vstack([x, y, z])
         return points
 
-    def get_bbox(self):
+    def get_bbox_local(self):
         return (
             -self.radius,
             self.radius,
@@ -296,6 +288,7 @@ class Sphere(Surface):
             height if height is not None else 2 * radius
         )  # from z=+radius to z=+radius-height
         self.planar = False
+        self.diameter = np.sqrt(radius**2 - (radius - height) ** 2) * 2
 
     def f(self, P: np.ndarray) -> float:
         return np.linalg.norm(P) - self.radius
@@ -331,14 +324,14 @@ class Sphere(Surface):
 
         return points
 
-    def get_bbox(self):
+    def get_bbox_local(self):
         return (
             self.radius - self.height,
             self.radius,
-            -self.radius,
-            self.radius,
-            -self.radius,
-            self.radius,
+            -self.diameter / 2,
+            self.diameter / 2,
+            -self.diameter / 2,
+            self.diameter / 2,
         )
 
 
@@ -483,5 +476,5 @@ class Polygon(Plane):
         verts_closed = np.vstack([self.vertices, self.vertices[0]])  # close the loop
         return verts_closed.T
 
-    def get_bbox(self) -> Tuple[float, float, float, float, float, float]:
+    def get_bbox_local(self) -> Tuple[float, float, float, float, float, float]:
         return self._bbox

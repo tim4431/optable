@@ -18,9 +18,21 @@ class ComponentGroup(OpticalComponent):
         self.monitors = []
         self.rays = []
         self.refpoints = []
+        self.name = kwargs.get("name", None)
 
     def __repr__(self):
         return f"ComponentGroup(origin={self.origin}, transform_matrix={self.transform_matrix})"
+
+    @property
+    def bbox(self):
+        if self._bbox == (None, None, None, None, None, None):
+            self._bbox = tuple(self.get_bbox())
+        return tuple(self._bbox)
+
+    def get_bbox(self) -> tuple:
+        bboxs = [c.get_bbox() for c in self.components]
+        bbox_merged = self.surface.merge_bboxs(bboxs)
+        return bbox_merged
 
     def _RotAroundLocal(self, axis, localpoint, theta):
         # Note that localpoint is in the local coord, and origins are all in lab coord
@@ -69,6 +81,17 @@ class ComponentGroup(OpticalComponent):
     def interact(self, ray: Ray) -> Union[Tuple[float, List[Ray]], Tuple[None, None]]:
         tList = []
         new_rays_list = []
+        # first does this ray even intersect with the bbox of this component group
+        EPS = 1e-9
+        t1, t2 = solve_crosssection_ray_bbox(self.bbox, ray.origin, ray.direction)
+        #
+        # print(
+        #     f"ComponentGroup {self.name}, ComponentClassname {self.__class__.__name__} bbox: {self.bbox}"
+        # )
+        # print(f"Component {self.name}, bbox intersection t: {t1}, {t2}")
+        # print(f"Ray origin: {ray.origin}, direction: {ray.direction}")
+        if t2 + EPS < t1:  # no intersection
+            return None, None
         for component in self.components:
             t, new_rays = component.interact(ray)
             if t is not None:
@@ -211,7 +234,7 @@ class MMA(ComponentGroup):
     """Microlens Mirror Array"""
 
     def __init__(self, origin, N, pitch, roc, n, thickness, roc_drift=0, **kwargs):
-        super().__init__(origin)
+        super().__init__(origin, **kwargs)
         self.pitch = pitch
         #
         if isinstance(N, int):
@@ -450,7 +473,7 @@ class DovePrism(ComponentGroup):
 
 class PlanoConvexLens(ComponentGroup):
     def __init__(self, origin, EFL, CT, diameter, R, **kwargs):
-        super().__init__(origin)
+        super().__init__(origin, **kwargs)
         # calculate refractive index from EFL and R
         n = 1 + R / EFL
         o1 = np.array([-R + CT, 0, 0]) + self.origin
@@ -467,7 +490,7 @@ class PlanoConvexLens(ComponentGroup):
 
 class BiConvexLens(ComponentGroup):
     def __init__(self, origin, R1, R2, CT, diameter, n, **kwargs):
-        super().__init__(origin)
+        super().__init__(origin, **kwargs)
         o1 = np.array([R1, 0, 0]) + self.origin
         o2 = np.array([-R2 + CT, 0, 0]) + self.origin
         height_curve1 = R1 - np.sqrt(R1**2 - (diameter / 2) ** 2)

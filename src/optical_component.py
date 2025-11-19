@@ -38,13 +38,38 @@ class OpticalComponent(Vector):
     def tangent(self):
         return self.transform_matrix @ np.array([0, 1, 0])
 
+    def get_bbox_local(self):
+        raise NotImplementedError("Subclasses must implement get_bbox_local method")
+
     @property
     def bbox(self):
         self._bbox = tuple(self.get_bbox())
         return tuple(self._bbox)
 
     def get_bbox(self) -> tuple:
-        raise NotImplementedError("Subclasses must implement get_bbox method")
+        bbox_local = self.get_bbox_local()
+        corners_local = np.array(
+            [
+                [bbox_local[0], bbox_local[2], bbox_local[4]],  # [xmin, ymin, zmin]
+                [bbox_local[1], bbox_local[2], bbox_local[4]],  # [xmax, ymin, zmin]
+                [bbox_local[0], bbox_local[3], bbox_local[4]],  # [xmin, ymax, zmin]
+                [bbox_local[1], bbox_local[3], bbox_local[4]],  # [xmax, ymax, zmin]
+                [bbox_local[0], bbox_local[2], bbox_local[5]],  # [xmin, ymin, zmax]
+                [bbox_local[1], bbox_local[2], bbox_local[5]],  # [xmax, ymin, zmax]
+                [bbox_local[0], bbox_local[3], bbox_local[5]],  # [xmin, ymax, zmax]
+                [bbox_local[1], bbox_local[3], bbox_local[5]],  # [xmax, ymax, zmax]
+            ]
+        ).T  # shape (3, 8)
+        corners_global = (self.transform_matrix @ corners_local) + self.origin.reshape(
+            -1, 1
+        )  # shape (3, 8)
+        xmin, xmax = np.min(corners_global[0, :]), np.max(corners_global[0, :])
+        ymin, ymax = np.min(corners_global[1, :]), np.max(corners_global[1, :])
+        zmin, zmax = np.min(corners_global[2, :]), np.max(corners_global[2, :])
+        # print(
+        #     f"Component {self.name}, bbox: {(xmin, xmax, ymin, ymax, zmin, zmax)},origin: {self.origin}"
+        # )
+        return (xmin, xmax, ymin, ymax, zmin, zmax)
 
     def _RotAroundLocal(self, axis, localpoint, theta):
         R = self.R(axis, theta)
@@ -131,7 +156,9 @@ class OpticalComponent(Vector):
                 Pt = ray.origin + t * ray.direction
                 return self.surface.f(Pt)
 
-            t1, t2 = self.surface.solve_crosssection_ray_bbox(ray.origin, ray.direction)
+            t1, t2 = self.surface.solve_crosssection_ray_bbox_local(
+                ray.origin, ray.direction
+            )
             # print("t1, t2", t1, t2)
             if t2 + EPS < t1:
                 return None, None
@@ -351,8 +378,8 @@ class PointObj(OpticalComponent):
                 s=20,
             )
 
-    def get_bbox(self):
-        return self.surface.get_bbox()
+    def get_bbox_local(self):
+        return self.surface.get_bbox_local()
 
 
 class Block(OpticalComponent):
@@ -380,8 +407,8 @@ class Block(OpticalComponent):
     def render(self, ax, type: str, **kwargs):
         super().render(ax, type, color=self._edge_color, **kwargs)
 
-    def get_bbox(self):
-        return self.surface.get_bbox()
+    def get_bbox_local(self):
+        return self.surface.get_bbox_local()
 
 
 class BaseMirror(OpticalComponent):
@@ -429,8 +456,8 @@ class BaseMirror(OpticalComponent):
     def render(self, ax, type: str, **kwargs):
         super().render(ax, type, color=self._edge_color, **kwargs)
 
-    def get_bbox(self):
-        return self.surface.get_bbox()
+    def get_bbox_local(self):
+        return self.surface.get_bbox_local()
 
 
 class BaseRefraciveSurface(OpticalComponent):
@@ -545,8 +572,8 @@ class BaseRefraciveSurface(OpticalComponent):
     def render(self, ax, type: str, **kwargs):
         super().render(ax, type, color=self._edge_color, **kwargs)
 
-    def get_bbox(self):
-        return self.surface.get_bbox()
+    def get_bbox_local(self):
+        return self.surface.get_bbox_local()
 
 
 class Mirror(BaseMirror):
@@ -740,8 +767,8 @@ class Lens(OpticalComponent):
     def render(self, ax, type: str, **kwargs):
         return super().render(ax, type, color=self._edge_color, **kwargs)
 
-    def get_bbox(self):
-        return self.surface.get_bbox()
+    def get_bbox_local(self):
+        return self.surface.get_bbox_local()
 
 
 class CylMirror(BaseMirror):

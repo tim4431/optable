@@ -234,7 +234,25 @@ def get_attr_str(obj, attr_name, default=None):
     )
 
 
-# path = Path([[0, 0], [1, 0], [1, 1], [0, 1]])
-# print(path.round_trip)
-# # print(path.calc_coord(0.5))
-# print(path.coord(-0.5))
+def solve_crosssection_ray_bbox(bbox, ray_origin, ray_direction) -> Tuple[float]:
+    """for each set of bbox plane, solve the intersection with the ray [t1,t2]
+    then the intersection point should be intersection of [t1x,t2x], [t1y,t2y], [t1z,t2z]
+    return [t1, t2], if no intersection return [0, inf]
+    """
+    t1, t2 = 0, np.inf
+    for i in range(3):
+        if abs(ray_direction[i]) < 1e-12:
+            # parallel
+            if not (bbox[2 * i] <= ray_origin[i] <= bbox[2 * i + 1]):
+                # outside the bbox
+                return 0, np.inf
+        else:
+            t1i = (bbox[2 * i] - ray_origin[i]) / ray_direction[i]
+            t2i = (bbox[2 * i + 1] - ray_origin[i]) / ray_direction[i]
+            if t1i > t2i:
+                t1i, t2i = t2i, t1i
+
+            t1 = max(t1, t1i)
+            t2 = min(t2, t2i)
+    #
+    return t1, t2
