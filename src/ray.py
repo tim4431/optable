@@ -100,11 +100,6 @@ class Ray(Vector):
     def tangent_2(self):
         return self._normalize_vector(np.cross(self.direction, self.tangent_1))
 
-    def _RotAroundCenter(self, axis, theta):
-        R = self.R(axis, theta)
-        self.direction = np.dot(R, self.direction)
-        return self
-
     def _RotAroundLocal(self, axis, localpoint, theta):
         R = self.R(axis, theta)
         localpoint = np.array(localpoint)
@@ -179,14 +174,16 @@ class Ray(Vector):
             start = self.origin[:2]
             end = start + self.direction[:2] * length
 
+            render_line = kwargs.get("render_line", True)
             # Plot the line representing the ray
-            ax.plot(
-                [start[0], end[0]],
-                [start[1], end[1]],
-                color=color,
-                alpha=alpha,
-                linewidth=linewidth,
-            )
+            if render_line:
+                ax.plot(
+                    [start[0], end[0]],
+                    [start[1], end[1]],
+                    color=color,
+                    alpha=alpha,
+                    linewidth=linewidth,
+                )
 
             arrow = kwargs.get("ray_arrow", False)
 
@@ -232,14 +229,16 @@ class Ray(Vector):
                 ax.fill(pts_x, pts_y, color="red", alpha=alpha / 2, ec=None)
                 #
                 z_to_waist = -self.distance_to_waist(self.qo)
-                if 0 < z_to_waist < length:
-                    ax.scatter(
-                        self.origin[0] + z_to_waist * vx,
-                        self.origin[1] + z_to_waist * vy,
-                        marker=".",
-                        color="black",
-                        alpha=alpha,
-                    )
+                annote_waist = kwargs.get("annote_waist", True)
+                if annote_waist:
+                    if 0 < z_to_waist < length:
+                        ax.scatter(
+                            self.origin[0] + z_to_waist * vx,
+                            self.origin[1] + z_to_waist * vy,
+                            marker=".",
+                            color="black",
+                            alpha=alpha,
+                        )
 
         elif type == "3D":
             # Determine the start and end points of the ray

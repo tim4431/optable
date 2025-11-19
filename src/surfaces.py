@@ -47,6 +47,51 @@ class Surface(Base):
             max(bbox1[5], bbox2[5]),
         )
 
+    def solve_crosssection_ray_bbox(self, ray_origin, ray_direction) -> Tuple[float]:
+        """for each set of bbox plane, solve the intersection with the ray [t1,t2]
+        then the intersection point should be intersection of [t1x,t2x], [t1y,t2y], [t1z,t2z]
+        return [t1, t2], if no intersection return [0, inf]
+        """
+        bbox = self.get_bbox()
+        t1, t2 = 0, np.inf
+        for i in range(3):
+            if abs(ray_direction[i]) < 1e-12:
+                # parallel
+                if not (bbox[2 * i] <= ray_origin[i] <= bbox[2 * i + 1]):
+                    # outside the bbox
+                    return 0, np.inf
+            else:
+                t1i = (bbox[2 * i] - ray_origin[i]) / ray_direction[i]
+                t2i = (bbox[2 * i + 1] - ray_origin[i]) / ray_direction[i]
+                if t1i > t2i:
+                    t1i, t2i = t2i, t1i
+
+                t1 = max(t1, t1i)
+                t2 = min(t2, t2i)
+        #
+        return t1, t2
+
+
+class Point(Surface):
+    def __init__(self):
+        super().__init__()
+        self.planar = False
+
+    def f(self, P: np.ndarray) -> float:
+        return np.linalg.norm(P)
+
+    def normal(self, P: np.ndarray) -> np.ndarray:
+        return P / np.linalg.norm(P)
+
+    def within_boundary(self, P: np.ndarray) -> bool:
+        return np.linalg.norm(P) < 1e-12  # only the origin
+
+    def parametric_boundary(self, t: Sequence[float], type: str) -> np.ndarray:
+        return np.zeros((3, len(t)))
+
+    def get_bbox(self):
+        return (0, 0, 0, 0, 0, 0)
+
 
 class Plane(Surface):
     def __init__(self):
@@ -288,11 +333,11 @@ class Sphere(Surface):
 
     def get_bbox(self):
         return (
-            -self.radius,
-            self.radius,
-            -self.radius,
-            self.radius,
             self.radius - self.height,
+            self.radius,
+            -self.radius,
+            self.radius,
+            -self.radius,
             self.radius,
         )
 

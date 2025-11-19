@@ -26,11 +26,10 @@ for var, val in vars.items():
 
 L = 6.34
 D = 1.515
-Lu = L - 2 * D
 Ng = 1.515
-theta = np.arcsin((np.sqrt(2) / 2) / Ng)
-z0 = (L / 2) / (1 + np.tan(np.pi / 4 + theta))
-print(z0)
+
+dp = DovePrism([0, 0, 0], L=L, D=D, Ng=Ng)
+z0 = dp.z0
 
 raysx = [
     Ray([3, y, z + 1], [-1, 0, -0.3])
@@ -53,65 +52,26 @@ rays0 = [Ray([0, -50, z0], [0, 1, 0])]
 # rays = raysx + raysz + raysy
 rays = rays0
 
-# 2) Arbitrary 3-D triangle
-verts2d = np.array(
-    [
-        [-L / 2, 0],
-        [L / 2, 0],
-        [Lu / 2, D],
-        [-Lu / 2, D],
-    ]
-)
-poly2d = Polygon(verts2d)
-
-SL = BaseRefraciveSurface(origin=[-D / 2, 0, 0], n1=Ng, n2=1)
-SL.surface = poly2d
-SR = BaseRefraciveSurface(origin=[D / 2, 0, 0], n1=1, n2=Ng)
-SR.surface = poly2d
-SU = SquareRefractive(origin=[0, 0, D], width=Lu, height=D, n1=Ng, n2=1).RotY(np.pi / 2)
-SB = SquareRefractive(origin=[0, 0, 0], width=L, height=D, n1=1, n2=Ng).RotY(np.pi / 2)
-verts3dI = np.array(
-    [[-D / 2, -L / 2, 0], [D / 2, -L / 2, 0], [D / 2, -Lu / 2, D], [-D / 2, -Lu / 2, D]]
-)
-verts3dO = np.array(
-    [[-D / 2, L / 2, 0], [D / 2, L / 2, 0], [D / 2, Lu / 2, D], [-D / 2, Lu / 2, D]]
-)
-poly3dI = Polygon(verts3dI)
-poly3dO = Polygon(verts3dO)
-SI = BaseRefraciveSurface(origin=[0, 0, 0], n1=Ng, n2=1)
-SI.surface = poly3dI
-SO = BaseRefraciveSurface(origin=[0, 0, 0], n1=1, n2=Ng)
-SO.surface = poly3dO
-
-DovePrism = ComponentGroup(origin=[0, 0, 0], name="Dove Prism")
-DovePrism.add_components([SL, SR, SU, SB, SI, SO])
-DovePrism = (
-    DovePrism.RotX(tX).RotZ(tZ).TX(TX).TZ(TZ).RotYAroundLocal([0, 0, D / 2], theta=RLY)
-)
+dp = dp.RotX(tX).RotZ(tZ).TX(TX).TZ(TZ).RotYAroundLocal([0, 0, D / 2], theta=RLY)
 
 DL = -10
 FL = 20
-# l0 = Lens(origin=[0, -FL + DL, z0], focal_length=FL, radius=2).RotZ(np.pi / 2)
-# l1 = Lens(origin=[0, FL + DL + d2F, z0], focal_length=FL, radius=2).RotZ(np.pi / 2)
 
 mon0 = Monitor([0, 10, z0], width=2 * D, height=2 * D, name="Monitor 0").RotZ(np.pi / 2)
-# mon1 = Monitor([0, 30, z0], width=2 * D, height=2 * D, name="Monitor 0").RotZ(np.pi / 2)
 
-components = [DovePrism]
+components = [dp]
 
 table = OpticalTable()
 table.add_components(components)
 table.add_monitors([mon0])
 table.ray_tracing(rays)
 
-# ax0.annotate(mon0.ndata, (mon0.origin[0], mon0.origin[1]), fontsize=15, color="black")
 table.render(
     ax0,
     type="3D",
     roi=[-5, 5, -5, 5, -5, 5],
 )
 mon0.render_scatter(ax1[0])
-# mon1.render_scatter(ax1[0])
 
 if __name__ == "__main__":
     # plt.axis("off")

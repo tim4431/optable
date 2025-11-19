@@ -88,9 +88,12 @@ class Vector(Base):
         R = c * np.eye(3) + (1 - c) * np.outer(k, k) + np.sin(np.arccos(c)) * K
         return R
 
-    def _RotAroundCenter(self, axis, theta):
+    def _RotAroundLocal(self, axis, localpoint, theta):
         # return self
-        raise NotImplementedError("_RotAroundCenter method not implemented")
+        raise NotImplementedError("_RotAroundLocal method not implemented")
+
+    def _RotAroundCenter(self, axis, theta):
+        return self._RotAroundLocal(axis, [0, 0, 0], theta)
 
     def RotX(self, theta):
         return self._RotAroundCenter([1, 0, 0], theta)
@@ -101,8 +104,9 @@ class Vector(Base):
     def RotZ(self, theta):
         return self._RotAroundCenter([0, 0, 1], theta)
 
-    def _RotAroundLocal(self, axis, localpoint, theta):
-        return self
+    def _RotAround(self, axis, point, theta):
+        localpoint = np.array(point) - self.origin
+        return self._RotAroundLocal(axis, localpoint, theta)
 
     def RotXAroundLocal(self, localpoint, theta):
         return self._RotAroundLocal([1, 0, 0], localpoint, theta)
@@ -113,18 +117,18 @@ class Vector(Base):
     def RotZAroundLocal(self, localpoint, theta):
         return self._RotAroundLocal([0, 0, 1], localpoint, theta)
 
-    def _Translate(self, direction, distance):
-        self.origin += np.array(direction) * distance
+    def _Translate(self, movement):
+        self.origin += np.array(movement)
         return self
 
     def TX(self, dx):
-        return self._Translate([1, 0, 0], dx)
+        return self._Translate([dx, 0, 0])
 
     def TY(self, dy):
-        return self._Translate([0, 1, 0], dy)
+        return self._Translate([0, dy, 0])
 
     def TZ(self, dz):
-        return self._Translate([0, 0, 1], dz)
+        return self._Translate([0, 0, dz])
 
 
 class Path:
@@ -200,10 +204,10 @@ def run_code_block(filepath, marker, globals=None):
     inside_block = False
     code_lines = []
     for line in lines:
-        if start_marker in line:
+        if line.strip() == start_marker:
             inside_block = True
             continue
-        if end_marker in line:
+        if line.strip() == end_marker:
             break
         if inside_block:
             code_lines.append(line)

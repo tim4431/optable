@@ -53,13 +53,16 @@ class OpticalTable:
         """
         Perform ray tracing simulation.
         """
-        rays = [ray]
+        alive_rays = [ray]
+        dead_rays = []
         exit_flag = False
         t_start = time.time()
+        last_hint_time = t_start
         trace_num = 0
         # MAX_TRACEING_TIME = 0.5
+        MIN_HINTING_TIME = 1
         MAX_TRACEING_TIME = 1e9
-        MAX_TRACE_NUM = 500
+        MAX_TRACE_NUM = 800
         if perfomance_limit is not None:
             if "max_trace_time" in perfomance_limit:
                 MAX_TRACEING_TIME = perfomance_limit["max_trace_time"]
@@ -71,31 +74,43 @@ class OpticalTable:
             and (trace_num < MAX_TRACE_NUM)
         ):
             trace_num += 1
+            # print every second, how much alive traces left, how many traces have been done
+            tnow = time.time()
+            if (tnow - t_start > MIN_HINTING_TIME) and (
+                tnow - last_hint_time > MIN_HINTING_TIME
+            ):
+                num_alive = len(alive_rays)
+                num_dead = len(dead_rays)
+                print(
+                    "Tracing... Time elapsed: {:.2f} s, Trace num: {}, Alive rays: {}, Dead rays: {}".format(
+                        tnow - t_start, trace_num, num_alive, num_dead
+                    )
+                )
+                last_hint_time = tnow
             # print(len(rays))
             # print(rays)
-            someone_alive = False
-            for ray in rays:
-                if ray.alive:
-                    someone_alive = True
-                    # 1. find the component that the ray will intersect the first
-                    t_min = None
-                    rays_min = None
-                    for component in self.components:
-                        t, new_rays = component.interact(ray)
-                        if t is not None and (t_min is None or t < t_min):
-                            t_min = t
-                            rays_min = new_rays
-                    # 2. intersection
-                    if rays_min is not None:
-                        rays.remove(ray)
-                        rays.extend(rays_min)
-                        break
-                    # 3. no intersection
-                    else:
-                        ray.alive = False
-            #
-            #
-            if not someone_alive:
+            if len(alive_rays) > 0:
+                ray = alive_rays.pop(0)
+                # 1. find the component that the ray will intersect the first
+                t_min = None
+                rays_min = None
+                for component in self.components:
+                    t, new_rays = component.interact(ray)
+                    if t is not None and (t_min is None or t < t_min):
+                        t_min = t
+                        rays_min = new_rays
+                # 2. intersection
+                if rays_min is not None:
+                    for r in rays_min:
+                        if r.alive:
+                            alive_rays.append(r)
+                        else:
+                            dead_rays.append(r)
+                # 3. no intersection
+                else:
+                    # ray.alive = False
+                    dead_rays.append(ray)
+            else:
                 exit_flag = True
         #
         if not exit_flag:
@@ -104,6 +119,7 @@ class OpticalTable:
                     trace_num
                 )
             )
+        rays = dead_rays.copy()
         for monitor in self.monitors:
             monitor.record(rays)
         return rays

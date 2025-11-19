@@ -53,9 +53,6 @@ class OpticalComponent(Vector):
         self.origin = self.origin + np.dot(R, -localpoint) + localpoint
         return self
 
-    def _RotAroundCenter(self, axis, theta):
-        return self._RotAroundLocal(axis, [0, 0, 0], theta)
-
     def to_local_coordinates(self, ray: Ray) -> Ray:
         """
         Transforms the ray to the local coordinate system of the optical component.
@@ -74,7 +71,7 @@ class OpticalComponent(Vector):
         global_direction = np.dot(R, ray.direction)
         return ray.copy(origin=global_origin, direction=global_direction)
 
-    def _find_zero(self, f, a, b, num_intervals: int = 100) -> np.ndarray:
+    def _find_zero(self, f, a, b, num_intervals: int = 20) -> np.ndarray:
         t_values = np.linspace(a, b, int(num_intervals))
         sols = []
         for i in range(len(t_values) - 1):
@@ -134,7 +131,13 @@ class OpticalComponent(Vector):
                 Pt = ray.origin + t * ray.direction
                 return self.surface.f(Pt)
 
-            tList = self._find_zero(f, 0, 1e2)
+            t1, t2 = self.surface.solve_crosssection_ray_bbox(ray.origin, ray.direction)
+            # print("t1, t2", t1, t2)
+            if t2 + EPS < t1:
+                return None, None
+            t1 = max(t1, 0)
+            t2 = min(t2, 100)
+            tList = self._find_zero(f, t1 - EPS, t2 + EPS)
 
             #
             if len(tList) == 0:
@@ -324,17 +327,29 @@ class OpticalComponent(Vector):
         return components
 
 
-class Nothing(OpticalComponent):
+class PointObj(OpticalComponent):
     def __init__(self, origin, **kwargs):
         super().__init__(origin, **kwargs)
-        self.surface = Plane()
-        self._edge_color = "black"
+        self.surface = Point()
+        self._edge_color = "orange"
 
     def interact_local(self, ray):
         return [ray]  # every ray is transmitted
 
     def render(self, ax, type: str, **kwargs):
-        super().render(ax, type, color=self._edge_color, **kwargs)
+        if type == "Z":
+            ax.scatter(
+                self.origin[0], self.origin[1], color=self._edge_color, marker="+", s=20
+            )
+        elif type == "3D":
+            ax.scatter(
+                self.origin[0],
+                self.origin[1],
+                self.origin[2],
+                color=self._edge_color,
+                marker="+",
+                s=20,
+            )
 
     def get_bbox(self):
         return self.surface.get_bbox()
