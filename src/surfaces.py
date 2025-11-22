@@ -61,7 +61,7 @@ class Surface(Base):
         self, ray_origin, ray_direction
     ) -> Tuple[float]:
         bbox_local = self.get_bbox_local()
-        return solve_crosssection_ray_bbox(bbox_local, ray_origin, ray_direction)
+        return solve_crosssection_ray_bboxes(ray_origin, ray_direction, bbox_local)
 
 
 class Point(Surface):

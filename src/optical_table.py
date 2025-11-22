@@ -61,8 +61,8 @@ class OpticalTable:
         trace_num = 0
         # MAX_TRACEING_TIME = 0.5
         MIN_HINTING_TIME = 1
-        MAX_TRACEING_TIME = 1e9
-        MAX_TRACE_NUM = 800
+        MAX_TRACEING_TIME = 600
+        MAX_TRACE_NUM = 2000
         if perfomance_limit is not None:
             if "max_trace_time" in perfomance_limit:
                 MAX_TRACEING_TIME = perfomance_limit["max_trace_time"]
@@ -172,7 +172,7 @@ class OpticalTable:
             aspect = kwargs.get("aspect", "equal")
             ax.set_aspect(aspect)
 
-    def gather_rays(self):
+    def gather_rays_csv(self):
         """
         Gather all rays in the optical table.
         """
@@ -211,11 +211,11 @@ class OpticalTable:
             )
         return components
 
-    def export_rays(self, filename: str):
+    def export_rays_csv(self, filename: str):
         """
         Export rays to a file.
         """
-        rays_traced = self.gather_rays()
+        rays_traced = self.gather_rays_csv()
 
         print(f"Exporting rays to {filename} ...")
 
@@ -226,7 +226,7 @@ class OpticalTable:
             for ray in rays_traced:
                 writer.writerow(ray.values())
 
-    def export_components(
+    def export_components_csv(
         self,
         filename: str,
         avoid_flatten_classname: List = [],

@@ -14,6 +14,7 @@ class ComponentGroup(OpticalComponent):
             None,
             None,
         )  # xmin, xmax, ymin, ymax, zmin, zmax
+        self._bboxes = []
         self.components = []
         self.monitors = []
         self.rays = []
@@ -29,9 +30,19 @@ class ComponentGroup(OpticalComponent):
             self._bbox = tuple(self.get_bbox())
         return tuple(self._bbox)
 
+    @property
+    def bboxes(self):
+        if not self._bboxes:
+            self.get_bboxes()
+        return self._bboxes
+
+    def get_bboxes(self) -> List[tuple]:
+        self._bboxes = [c.bbox for c in self.components]
+        return self._bboxes
+
     def get_bbox(self) -> tuple:
-        bboxs = [c.get_bbox() for c in self.components]
-        bbox_merged = self.surface.merge_bboxs(bboxs)
+        self.get_bboxes()
+        bbox_merged = self.surface.merge_bboxs(self._bboxes)
         return bbox_merged
 
     def _RotAroundLocal(self, axis, localpoint, theta):
@@ -83,16 +94,18 @@ class ComponentGroup(OpticalComponent):
         new_rays_list = []
         # first does this ray even intersect with the bbox of this component group
         EPS = 1e-9
-        t1, t2 = solve_crosssection_ray_bbox(self.bbox, ray.origin, ray.direction)
-        #
-        # print(
-        #     f"ComponentGroup {self.name}, ComponentClassname {self.__class__.__name__} bbox: {self.bbox}"
-        # )
-        # print(f"Component {self.name}, bbox intersection t: {t1}, {t2}")
-        # print(f"Ray origin: {ray.origin}, direction: {ray.direction}")
-        if t2 + EPS < t1:  # no intersection
+        _, _, hits = solve_crosssection_ray_bboxes(ray.origin, ray.direction, self.bbox)
+        if not hits[0]:
             return None, None
-        for component in self.components:
+        # then check each component
+        bboxes = [np.array(c.bbox) for c in self.components]
+        t1s, t2s, hits = solve_crosssection_ray_bboxes(
+            ray.origin, ray.direction, bboxes
+        )
+        # print(f"ComponentGroup.interact: ray {ray._id} hits {np.sum(hits)} components")
+        hits_idx_mask = np.where(hits)[0]
+        for i in hits_idx_mask:
+            component = self.components[i]
             t, new_rays = component.interact(ray)
             if t is not None:
                 tList.append(t)
@@ -247,6 +260,7 @@ class MMA(ComponentGroup):
                 y = (j - (ny - 1) / 2) * pitch
                 o = np.array([0, y, z]) + self.origin
                 roci = roc * (1 + roc_drift * np.random.randn())
+                print(kwargs.get("transmission", None))
                 mirror = SphereRefractive(
                     origin=o + [-roci, 0, 0],
                     radius=roci,
@@ -477,13 +491,15 @@ class PlanoConvexLens(ComponentGroup):
         # calculate refractive index from EFL and R
         n = 1 + R / EFL
         o1 = np.array([-R + CT, 0, 0]) + self.origin
+        D = CT / n  # principal plane location from flat surface
+        oD = np.array([-D, 0, 0])
         height_curve = R - np.sqrt(R**2 - (diameter / 2) ** 2)
         curved_face = SphereRefractive(
-            origin=o1, radius=R, height=height_curve, n1=1.0, n2=n, **kwargs
+            origin=o1 + oD, radius=R, height=height_curve, n1=1.0, n2=n, **kwargs
         )
         self.add_component(curved_face)
         flat_face = CircleRefractive(
-            origin=self.origin, radius=diameter / 2, n1=n, n2=1.0, **kwargs
+            origin=self.origin + oD, radius=diameter / 2, n1=n, n2=1.0, **kwargs
         )
         self.add_component(flat_face)
 

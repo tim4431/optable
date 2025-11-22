@@ -43,7 +43,8 @@ class OpticalComponent(Vector):
 
     @property
     def bbox(self):
-        self._bbox = tuple(self.get_bbox())
+        if self._bbox == (None, None, None, None, None, None):
+            self._bbox = tuple(self.get_bbox())
         return tuple(self._bbox)
 
     def get_bbox(self) -> tuple:
@@ -96,7 +97,7 @@ class OpticalComponent(Vector):
         global_direction = np.dot(R, ray.direction)
         return ray.copy(origin=global_origin, direction=global_direction)
 
-    def _find_zero(self, f, a, b, num_intervals: int = 20) -> np.ndarray:
+    def _find_zero(self, f, a, b, num_intervals: int = 10) -> np.ndarray:
         t_values = np.linspace(a, b, int(num_intervals))
         sols = []
         for i in range(len(t_values) - 1):
@@ -156,9 +157,10 @@ class OpticalComponent(Vector):
                 Pt = ray.origin + t * ray.direction
                 return self.surface.f(Pt)
 
-            t1, t2 = self.surface.solve_crosssection_ray_bbox_local(
+            t1, t2, hits = self.surface.solve_crosssection_ray_bbox_local(
                 ray.origin, ray.direction
             )
+            t1, t2 = float(t1[0]), float(t2[0])
             # print("t1, t2", t1, t2)
             if t2 + EPS < t1:
                 return None, None
@@ -532,7 +534,7 @@ class BaseRefraciveSurface(OpticalComponent):
         cos_theta_i = np.clip(cos_theta_i, -1, 1)  # avoid numerical issues
         sin_theta_i = np.sqrt(1 - cos_theta_i**2)
         sin_theta_t = (nin * sin_theta_i) / nout
-        if sin_theta_t < 1:
+        if sin_theta_t < 1 and self.transmission > 0:
             cos_theta_t = np.sqrt(1 - sin_theta_t**2)
             transmitted_direction = (
                 nin / nout

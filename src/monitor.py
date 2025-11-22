@@ -8,12 +8,30 @@ class Monitor(OpticalComponent):
         self.height = height
         self.surface = Rectangle(width, height)
         self._edge_color = "orange"
-        self.data = []  # list of tuples (P, intensity)
+        self._data_raw = []  # list of tuples (P, intensity)
+        self._sortYZindex = None
+        self._sorted_data = []
+        self._updated = False
         self.name = kwargs.get("name", None)
 
     @property
     def ndata(self):
-        return len(self.data)
+        return len(self._data_raw)
+
+    @property
+    def data(self):
+        if not self._sorted_data or self._updated:
+            self._sorted_data = [self._data_raw[i] for i in self.sortYZIndex]
+            self._updated = False
+        return self._sorted_data
+
+    @property
+    def raw_yList(self):
+        return np.array([data[0][1] for data in self._data_raw])
+
+    @property
+    def raw_zList(self):
+        return np.array([data[0][2] for data in self._data_raw])
 
     @property
     def yList(self):
@@ -24,11 +42,18 @@ class Monitor(OpticalComponent):
         return np.array([data[0][2] for data in self.data])
 
     @property
+    def IList(self):
+        """intensity list"""
+        return np.array([data[1] for data in self.data])
+
+    @property
     def tList(self):
+        """tilt list"""
         return np.array([data[2] for data in self.data])
 
     @property
     def rList(self):
+        """ray list"""
         return np.array([data[3] for data in self.data])
 
     @property
@@ -37,21 +62,8 @@ class Monitor(OpticalComponent):
 
     @property
     def sortYZIndex(self):
-        # lexsort
-        return np.lexsort((self.zList, self.yList))
-        # # first sort by z, group by 6, and within each group sort by y
-        # GROUP_SIZE = 6
-        # idx = np.argsort(self.zList)
-        # for i in range(0, len(idx), GROUP_SIZE):
-        #     group = idx[i : i + GROUP_SIZE]
-        #     group_sorted = group[np.argsort(self.yList[group])]
-        #     idx[i : i + GROUP_SIZE] = group_sorted
-
-        # return idx
-
-    @property
-    def directionListSortByYZ(self):
-        return self.directionList[self.sortYZIndex]
+        self._sortYZindex = np.lexsort((self.raw_zList, self.raw_yList))
+        return self._sortYZindex
 
     @property
     def tYList(self):
@@ -62,19 +74,10 @@ class Monitor(OpticalComponent):
 
     @property
     def tZList(self):
-        directionList = self.directionList
+        directionList = self.directionList  # n*3
         # z component of the direction vector is the third component
         tZList = directionList[:, 2]  # n
         return tZList
-
-    @property
-    def tYListSortByYZ(self):
-        return self.directionListSortByYZ[:, 1]
-
-    @property
-    def tZListSortByYZ(self):
-        # sort the tZList by y and z components
-        return self.directionListSortByYZ[:, 2]
 
     def interact_local(self, ray):
         return [ray]
@@ -94,10 +97,11 @@ class Monitor(OpticalComponent):
                 # spot_size = r.spot_size(t) if r.qo is not None else 0
                 # Pts.append((P, local_ray.intensity, spot_size))
                 Pts.append((P, local_ray.intensity, t, r))
-        self.data.extend(Pts)
+        self._data_raw.extend(Pts)
+        self._updated = True
 
     def _get_hist_y(self):
-        yList = [data[0][1] for data in self.data]
+        yList = self.yList
         counts, bins = np.histogram(
             yList, bins=30, range=(-self.width / 2, self.width / 2)
         )
@@ -156,17 +160,31 @@ class Monitor(OpticalComponent):
         Ixx = np.sum(counts * bins[:-1] ** 2) / np.sum(counts)
         return np.sqrt(Ixx - Ix**2)
 
+    def export_rays_npz(self, filename: str):
+        print(f"Exporting {self.ndata} rays to {filename} ...")
+        xList = self.yList
+        yList = self.zList
+        tXList = self.tYList
+        tYList = self.tZList
+        IList = self.IList
+        np.savez(
+            filename,
+            xList=xList,
+            yList=yList,
+            tXList=tXList,
+            tYList=tYList,
+            IList=IList,
+        )
+
     def render_hist(self, ax, type="Y", **kwargs):
         if type == "Y":
             counts, bins = self._get_hist_y()
             ax.bar(bins[:-1], counts, width=(bins[1] - bins[0]), **kwargs)
             ax.set_xlabel("Y")
         elif type == "YZ":
-            yList = [data[0][1] for data in self.data]
-            zList = [data[0][2] for data in self.data]
             ax.hist2d(
-                yList,
-                zList,
+                self.yList,
+                self.zList,
                 bins=30,
                 density=False,
                 range=(
@@ -179,13 +197,11 @@ class Monitor(OpticalComponent):
             ax.set_ylabel("Z")
 
     def render_scatter(self, ax, **kwargs):
-        # if hasattr(self, "name") and self.name is not None:
-        #     print(f"Rendering {self.name} with {self.ndata} data points")
-        if len(self.data) == 0:
+        if self.ndata == 0:
             return
-        yList = np.array([data[0][1] for data in self.data])
-        zList = np.array([data[0][2] for data in self.data])
-        IList = np.array([data[1] for data in self.data])
+        yList = self.yList
+        zList = self.zList
+        IList = self.IList
         alpha = np.clip(IList, 0.1, 1)
         ax.scatter(yList, zList, marker="+", alpha=alpha, c="blue")
         #
@@ -224,8 +240,8 @@ class Monitor(OpticalComponent):
         gaussian_beam = kwargs.get("gaussian_beam", False)
         if gaussian_beam:
             spot_size_scale = kwargs.get("spot_size_scale", 1.0)
-            tList = np.array([data[2] for data in self.data])
-            rList = np.array([data[3] for data in self.data])
+            tList = self.tList
+            rList = self.rList
             spotsizeList = (
                 np.array([r.spot_size(t) for r, t in zip(rList, tList)])
                 * spot_size_scale
@@ -310,7 +326,7 @@ class Monitor(OpticalComponent):
         ax.set_xticklabels([f"{i}" for i in range(len(dy))])
 
     def render_tilt_y(self, ax, **kwargs):
-        tYList = self.tYListSortByYZ
+        tYList = self.tYList
         ax.bar(np.arange(len(tYList)), tYList, **kwargs)
         ax.set_xlabel("Index")
         ax.set_ylabel("Tilt Y")
