@@ -26,6 +26,10 @@ class Monitor(OpticalComponent):
         return self._sorted_data
 
     @property
+    def rays(self):
+        return [data[3] for data in self.data]
+
+    @property
     def raw_yList(self):
         return np.array([data[0][1] for data in self._data_raw])
 
@@ -78,6 +82,22 @@ class Monitor(OpticalComponent):
         # z component of the direction vector is the third component
         tZList = directionList[:, 2]  # n
         return tZList
+
+    def get_ray_i(self, idx):
+        rayi = self.rays[idx]
+        hity = self.yList[idx]
+        hitz = self.zList[idx]
+        tilty = self.tYList[idx]
+        tiltz = self.tZList[idx]
+        intensity = self.IList[idx]
+        hit_point = [hity, hitz, tilty, tiltz, intensity]
+        return rayi, hit_point
+
+    def get_ray_id(self, ray_id):
+        for idx, r in enumerate(self.rays):
+            if r._id == ray_id:
+                return self.get_ray_i(idx)
+        return None, None
 
     def interact_local(self, ray):
         return [ray]

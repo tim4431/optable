@@ -534,19 +534,20 @@ class BaseRefraciveSurface(OpticalComponent):
         cos_theta_i = np.clip(cos_theta_i, -1, 1)  # avoid numerical issues
         sin_theta_i = np.sqrt(1 - cos_theta_i**2)
         sin_theta_t = (nin * sin_theta_i) / nout
-        if sin_theta_t < 1 and self.transmission > 0:
-            cos_theta_t = np.sqrt(1 - sin_theta_t**2)
-            transmitted_direction = (
-                nin / nout
-            ) * r_t + cos_theta_t * transmitted_normal
-            transmitted_ray = ray.copy(
-                origin=P,
-                direction=transmitted_direction,
-                intensity=ray.intensity * self.transmission,
-                qo=qo_trans,
-                n=nout,
-            )
-            rays.append(transmitted_ray)
+        if sin_theta_t < 1:
+            if self.transmission > 0:
+                cos_theta_t = np.sqrt(1 - sin_theta_t**2)
+                transmitted_direction = (
+                    nin / nout
+                ) * r_t + cos_theta_t * transmitted_normal
+                transmitted_ray = ray.copy(
+                    origin=P,
+                    direction=transmitted_direction,
+                    intensity=ray.intensity * self.transmission,
+                    qo=qo_trans,
+                    n=nout,
+                )
+                rays.append(transmitted_ray)
         else:
             # total internal reflection
             reflected_direction = ray.direction + 2 * cos_theta_i * (-normal)
@@ -714,11 +715,11 @@ class BeamSplitter(SquareMirror):
                 [self.width / 2, 0, 0],
                 [0, self.width / 2, 0],
             ]
-            print(np.array(rect_pts).shape)
+            # print(np.array(rect_pts).shape)
             rect_pts = self.transform_matrix @ np.transpose(
                 np.array(rect_pts)
             ) + np.array(self.origin).reshape(-1, 1)
-            print(rect_pts.shape)
+            # print(rect_pts.shape)
             ax.add_patch(
                 plt.Polygon(
                     np.transpose(rect_pts)[:, :2],

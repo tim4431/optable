@@ -27,11 +27,11 @@ for var, val in vars.items():
 # 0
 rays = [
     Ray(
-        [-5, 3.2, 0],
+        [-3, 2, 0],
         [np.cos(np.pi / 6), -np.sin(np.pi / 6), 0],
         wavelength=780e-7,
-        w0=500e-4,
-    ).Propagate(-3),
+        w0=2e-4,
+    ).Propagate(-2),
 ]
 L = 2
 D = 0.5

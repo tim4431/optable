@@ -260,7 +260,7 @@ class MMA(ComponentGroup):
                 y = (j - (ny - 1) / 2) * pitch
                 o = np.array([0, y, z]) + self.origin
                 roci = roc * (1 + roc_drift * np.random.randn())
-                print(kwargs.get("transmission", None))
+                # print(kwargs.get("transmission", None))
                 mirror = SphereRefractive(
                     origin=o + [-roci, 0, 0],
                     radius=roci,
@@ -490,37 +490,157 @@ class PlanoConvexLens(ComponentGroup):
         super().__init__(origin, **kwargs)
         # calculate refractive index from EFL and R
         n = 1 + R / EFL
-        o1 = np.array([-R + CT, 0, 0]) + self.origin
-        D = CT / n  # principal plane location from flat surface
-        oD = np.array([-D, 0, 0])
+        # D = principal plane location from flat surface, the light enters from curved side
+        # which means the light goes +x direction
+        D = CT / n
         height_curve = R - np.sqrt(R**2 - (diameter / 2) ** 2)
         curved_face = SphereRefractive(
-            origin=o1 + oD, radius=R, height=height_curve, n1=1.0, n2=n, **kwargs
-        )
+            origin=np.array([R - (CT - D), 0, 0]) + self.origin,
+            radius=R,
+            height=height_curve,
+            n1=1.0,
+            n2=n,
+            **kwargs,
+        ).RotZ(np.pi)
         self.add_component(curved_face)
         flat_face = CircleRefractive(
-            origin=self.origin + oD, radius=diameter / 2, n1=n, n2=1.0, **kwargs
-        )
+            origin=self.origin + np.array([+D, 0, 0]),
+            radius=diameter / 2,
+            n1=n,
+            n2=1.0,
+            **kwargs,
+        ).RotZ(np.pi)
         self.add_component(flat_face)
 
 
 class BiConvexLens(ComponentGroup):
-    def __init__(self, origin, R1, R2, CT, diameter, n, **kwargs):
+    def __init__(self, origin, CT, R1, R2, diameter, EFL=None, n=None, **kwargs):
         super().__init__(origin, **kwargs)
-        o1 = np.array([R1, 0, 0]) + self.origin
-        o2 = np.array([-R2 + CT, 0, 0]) + self.origin
-        height_curve1 = R1 - np.sqrt(R1**2 - (diameter / 2) ** 2)
-        height_curve2 = R2 - np.sqrt(R2**2 - (diameter / 2) ** 2)
-        curved_face1 = SphereRefractive(
-            origin=o1, radius=R1, height=height_curve1, n1=1.0, n2=n, **kwargs
-        ).RotZ(np.pi)
-        curved_face2 = SphereRefractive(
-            origin=o2,
-            radius=R2,
-            height=height_curve2,
-            n1=1.0,
-            n2=n,
-            **kwargs,
-        )
+        # R1 is on the left, R2 is on the right if +x is the right direction (incoming beam +x)
+        # R1 and R2 is defined seen from the incoming beam
+        # 1/f = (n-1)(1/R1 - 1/R2+(n-1)CT/nR1R2)
+        if n is None:
+            assert EFL is not None, "Either n or EFL must be provided"
+            # calculate the refractive index from focal length and radii, 1st order approx
+            n = 1 + (1 / EFL) / (1 / R1 - 1 / R2)
+            # refine the n to second order
+            for i in range(3):
+                n = 1 + (1 / EFL) / (1 / R1 - 1 / R2 + (n - 1) * CT / (n * R1 * R2))
+            # print(
+            #     f"BiConvexLens: calculated n={n} for EFL={EFL}, R1={R1}, R2={R2}, CT={CT}"
+            # )
+        else:
+            assert isinstance(n, (int, float)), "n must be a number"
+        # create the two curved surfaces
+        # R1
+        if R1 > 0:  # convex
+            o1 = np.array([R1, 0, 0]) + self.origin
+            height_curve1 = R1 - np.sqrt(R1**2 - (diameter / 2) ** 2)
+            curved_face1 = SphereRefractive(
+                origin=o1, radius=R1, height=height_curve1, n1=1.0, n2=n, **kwargs
+            ).RotZ(np.pi)
+        else:  # concave
+            o1 = np.array([R1, 0, 0]) + self.origin
+            height_curve1 = (-R1) - np.sqrt(R1**2 - (diameter / 2) ** 2)
+            curved_face1 = SphereRefractive(
+                origin=o1, radius=-R1, height=height_curve1, n1=n, n2=1.0, **kwargs
+            )
+        # R2
+        if R2 > 0:  # concave
+            o2 = np.array([R2 + CT, 0, 0]) + self.origin
+            height_curve2 = R2 - np.sqrt(R2**2 - (diameter / 2) ** 2)
+            curved_face2 = SphereRefractive(
+                origin=o2,
+                radius=R2,
+                height=height_curve2,
+                n1=n,
+                n2=1.0,
+                **kwargs,
+            ).RotZ(np.pi)
+        else:  # convex
+            o2 = np.array([R2 + CT, 0, 0]) + self.origin
+            height_curve2 = (-R2) - np.sqrt(R2**2 - (diameter / 2) ** 2)
+            curved_face2 = SphereRefractive(
+                origin=o2,
+                radius=-R2,
+                height=height_curve2,
+                n1=1.0,
+                n2=n,
+                **kwargs,
+            )
+        #
         self.add_component(curved_face1)
         self.add_component(curved_face2)
+
+
+class Doublet(ComponentGroup):
+    def __init__(self, origin, CT1, CT2, R1, R2, R3, diameter, n12, n23, **kwargs):
+        super().__init__(origin, **kwargs)
+        # R1 - R2 - R3 with +x direction incoming beam
+        # Rs defined seen from the incoming beam
+        # 1/f = (n-1)(1/R1 - 1/R2+(n-1)CT/nR1R2)
+
+        # create the three curved surfaces
+        # R1
+        if R1 > 0:  # convex
+            o1 = np.array([R1, 0, 0]) + self.origin
+            height_curve1 = R1 - np.sqrt(R1**2 - (diameter / 2) ** 2)
+            curved_face1 = SphereRefractive(
+                origin=o1, radius=R1, height=height_curve1, n1=1.0, n2=n12, **kwargs
+            ).RotZ(np.pi)
+        else:  # concave
+            o1 = np.array([R1, 0, 0]) + self.origin
+            height_curve1 = (-R1) - np.sqrt(R1**2 - (diameter / 2) ** 2)
+            curved_face1 = SphereRefractive(
+                origin=o1, radius=-R1, height=height_curve1, n1=n12, n2=1.0, **kwargs
+            )
+        # R2
+        if R2 > 0:  # concave
+            o2 = np.array([R2 + CT1, 0, 0]) + self.origin
+            height_curve2 = R2 - np.sqrt(R2**2 - (diameter / 2) ** 2)
+            curved_face2 = SphereRefractive(
+                origin=o2,
+                radius=R2,
+                height=height_curve2,
+                n1=n12,
+                n2=n23,
+                **kwargs,
+            ).RotZ(np.pi)
+        else:  # convex
+            o2 = np.array([R2 + CT1, 0, 0]) + self.origin
+            height_curve2 = (-R2) - np.sqrt(R2**2 - (diameter / 2) ** 2)
+            curved_face2 = SphereRefractive(
+                origin=o2,
+                radius=-R2,
+                height=height_curve2,
+                n1=n23,
+                n2=n12,
+                **kwargs,
+            )
+        # R3
+        if R3 > 0:  # concave
+            o3 = np.array([R3 + CT1 + CT2, 0, 0]) + self.origin
+            height_curve3 = R3 - np.sqrt(R3**2 - (diameter / 2) ** 2)
+            curved_face3 = SphereRefractive(
+                origin=o3,
+                radius=R3,
+                height=height_curve3,
+                n1=n23,
+                n2=1.0,
+                **kwargs,
+            ).RotZ(np.pi)
+        else:  # convex
+            o3 = np.array([R3 + CT1 + CT2, 0, 0]) + self.origin
+            height_curve3 = (-R3) - np.sqrt(R3**2 - (diameter / 2) ** 2)
+            curved_face3 = SphereRefractive(
+                origin=o3,
+                radius=-R3,
+                height=height_curve3,
+                n1=1.0,
+                n2=n23,
+                **kwargs,
+            )
+        #
+        self.add_component(curved_face1)
+        self.add_component(curved_face2)
+        self.add_component(curved_face3)
