@@ -335,6 +335,93 @@ class Sphere(Surface):
         )
 
 
+class ASphere(Surface):
+    def __init__(self, radius, f_asphere: callable):
+        """x = -f_asphere(r)"""
+        super().__init__()
+        self.radius = radius
+        self.f_asphere = f_asphere
+        self.planar = False
+        x0 = -self.f_asphere(0)
+        xR = -self.f_asphere(self.radius)
+        self.xmin = min(x0, xR)
+        self.xmax = max(x0, xR)
+
+    def _df_asphere_dr(self, r: float) -> float:
+        h = 1e-4 * self.radius
+        return (self.f_asphere(r + h) - self.f_asphere(r - h)) / (2 * h)
+
+    def _df_asphere_dr2(self, r: float) -> float:
+        # use central difference to compute second derivative
+        h = 1e-4 * self.radius
+        return (
+            self.f_asphere(r + h) - 2 * self.f_asphere(r) + self.f_asphere(r - h)
+        ) / (h**2)
+
+    def roc_r(self, r: float) -> float:
+        """Return the radius of curvature at radius r."""
+        df_dr = self._df_asphere_dr(r)
+        df_dr2 = self._df_asphere_dr2(r)
+        roc = (
+            1 + df_dr**2
+        ) ** 1.5 / df_dr2  # roc>0 means center of curvature toward -x side
+        return roc
+
+    def roc(self, P: np.ndarray) -> float:
+        r = np.linalg.norm(P[1:3])
+        return self.roc_r(r)
+
+    def f(self, P: np.ndarray) -> float:
+        r = np.linalg.norm(P[1:3])
+        z_asphere = -self.f_asphere(r)
+        return P[0] - z_asphere
+
+    def normal(self, P: np.ndarray) -> np.ndarray:
+        r = np.linalg.norm(P[1:3])
+        if r < 1e-12:
+            n = np.array([1.0, 0.0, 0.0])
+        else:
+            df_dr = self._df_asphere_dr(r)
+            n = np.array([1, (df_dr) * (P[1] / r), (df_dr) * (P[2] / r)])
+            n = n / np.linalg.norm(n)
+        return n
+
+    def within_boundary(self, P: np.ndarray) -> bool:
+        EPS = 1e-12
+        r = np.linalg.norm(P[1:3])
+        return r <= self.radius + EPS
+
+    def parametric_boundary(self, t: Sequence[float], type: str) -> np.ndarray:
+        theta = 2 * np.pi * t
+        # outer circle
+        r = self.radius
+        y = r * np.cos(theta)
+        z = r * np.sin(theta)
+        x = -self.f_asphere(r) * np.ones_like(t)
+        points = np.vstack([x, y, z])
+        # curved top 1
+        r = np.linspace(-self.radius, self.radius, len(t))
+        x = -self.f_asphere(np.abs(r))
+        z = np.zeros_like(t)
+        y = r * np.full_like(t, 1.0)
+        points = np.hstack([points, np.vstack([x, y, z])])
+        # curved top 2
+        y = r * np.zeros_like(t)
+        z = r * np.full_like(t, 1.0)
+        points = np.hstack([points, np.vstack([x, y, z])])
+        return points
+
+    def get_bbox_local(self):
+        return (
+            self.xmin,
+            self.xmax,
+            -self.radius,
+            self.radius,
+            -self.radius,
+            self.radius,
+        )
+
+
 class Polygon(Plane):
     """
     Planar polygon surface.

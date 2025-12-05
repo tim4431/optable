@@ -644,3 +644,62 @@ class Doublet(ComponentGroup):
         self.add_component(curved_face1)
         self.add_component(curved_face2)
         self.add_component(curved_face3)
+
+
+class ASphericLens(ComponentGroup):
+    def __init__(
+        self,
+        origin,
+        CT,
+        f_asphere_1: Callable,
+        f_asphere_2: Union[Callable, None],
+        diameter,
+        n,
+        **kwargs,
+    ):
+        super().__init__(origin, **kwargs)
+        # create aspheric lens surface
+        # surface_1
+        asphere_surface_1 = ASphere(diameter / 2, f_asphere_1)
+        surface_1 = BaseRefraciveSurface(
+            origin=self.origin, n1=1, n2=n, surface=asphere_surface_1, **kwargs
+        ).RotZ(np.pi)
+        # surface_2
+        if f_asphere_2 is not None:
+            asphere_surface_2 = ASphere(diameter / 2, f_asphere_2)
+            surface_2 = BaseRefraciveSurface(
+                origin=self.origin + np.array([CT, 0, 0]),
+                n1=n,
+                n2=1.0,
+                surface=asphere_surface_2,
+                **kwargs,
+            ).RotZ(np.pi)
+        else:
+            surface_2 = CircleRefractive(
+                origin=self.origin + np.array([CT, 0, 0]),
+                radius=diameter / 2,
+                n1=n,
+                n2=1.0,
+                **kwargs,
+            ).RotZ(np.pi)
+        #
+        self.add_component(surface_1)
+        self.add_component(surface_2)
+
+
+class ASphericExactSphericalLens(ASphericLens):
+    def __init__(self, origin, EFL, CT, diameter, n, **kwargs):
+        def f_asphere_1(r):
+            return (EFL / (n + 1)) * (
+                -1 + np.sqrt(1 + (n + 1) / (n - 1) * (r**2) / (EFL**2))
+            )
+
+        super().__init__(
+            origin,
+            CT,
+            f_asphere_1,
+            None,
+            diameter,
+            n,
+            **kwargs,
+        )

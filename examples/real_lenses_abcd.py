@@ -33,8 +33,8 @@ for var, val in vars.items():
         exec(f"{var} = {val[0]}")
 
 
-def simulate(dy, dthetay, F1, F2, lens_params: dict = {}, render=False):
-    N = 5
+def simulate(dy, dthetay, F1, F2, F3, lens_params: dict = {}, render=False, N: int = 0):
+    # print(N)
     D = 0.5
     R2wl = 780e-7  # in cm
     R2w0 = 61e-4  # in cm
@@ -61,12 +61,13 @@ def simulate(dy, dthetay, F1, F2, lens_params: dict = {}, render=False):
             ._RotAroundLocal([0, 0, 1], [10, 0, 0], -R2theta0 + dthetay),
         ]
 
-    # LENS = 0
-    # LENS = 1
-    # LENS = 2
-    # LENS = 3
-    # LENS = 4
-    LENS = 5
+    # LENS = 0  # Ideal lens
+    # LENS = 1  # F=35 Plano-Convex
+    # LENS = 2  # F=30 Meniscus
+    # LENS = 3  # F=20 Plano-Convex
+    # LENS = 4 # Biconvex best form
+    # LENS = 5 # Doublet
+    LENS = 6  # ASpheric
 
     if LENS == 0:
         R2l0r = Lens([F1, 0, 0], focal_length=F2, radius=2.54)
@@ -138,7 +139,7 @@ def simulate(dy, dthetay, F1, F2, lens_params: dict = {}, render=False):
             diameter=DL,
             R=Rr,
             name="L0",
-        )
+        ).RotZ(np.pi)
 
         R2l1r = PlanoConvexLens(
             [F1 + 2 * F2, 0, 0],
@@ -210,9 +211,20 @@ def simulate(dy, dthetay, F1, F2, lens_params: dict = {}, render=False):
             diameter=DL,
             name="L1",
         ).RotZ(np.pi)
+    #
+    elif LENS == 6:
+        EFL = 20
+        CT = 1
+        DL = 2.54 * 3
+        R2l0r = ASphericExactSphericalLens(
+            [F1, 0, 0], EFL=EFL, CT=CT, diameter=DL, n=1.5
+        ).RotZ(np.pi)
+        R2l1r = ASphericExactSphericalLens(
+            [F1 + 2 * F2, 0, 0], EFL=EFL, CT=CT, diameter=DL, n=1.5
+        )
 
     Mon0 = Monitor([F1 + F2, 0, 0], width=5, height=5, name="Monitor 0")
-    Mon1 = Monitor([2 * F1 + 2 * F2, 0, 0], width=10, height=10, name="Monitor 1")
+    Mon1 = Monitor([F1 + 2 * F2 + F3, 0, 0], width=10, height=10, name="Monitor 1")
 
     table = OpticalTable()
     components = [R2l0r, R2l1r]
@@ -224,7 +236,7 @@ def simulate(dy, dthetay, F1, F2, lens_params: dict = {}, render=False):
         table.render(
             ax0,
             type=PLOT_TYPE,
-            roi=(-3, 2 * F1 + 2 * F2 + 3, -5, 5, -1, 1),
+            roi=(-5, 2 * F1 + 2 * F2 + 5, -5, 5, -1, 1),
             gaussian_beam=True,
         )
         Mon0.render_scatter(ax1[0], annote_delta_pos=True)
@@ -239,14 +251,14 @@ def simulate(dy, dthetay, F1, F2, lens_params: dict = {}, render=False):
     return yList, tyList, fyList
 
 
-def calculate_abcd(F1, F2, lens_params: dict = {}, **kwargs):
+def calculate_abcd(F1, F2, F3, lens_params: dict = {}, N: int = 0, **kwargs):
     # Calculate ABCD matrix numerically for each ray in r0
     # return a list of ABCD matrix elements
     dy = 1e-5
     dthetay = 1e-5
-    y0List, ty0List, _ = simulate(0, 0, F1, F2, lens_params, **kwargs)
-    y1List, ty1List, _ = simulate(dy, 0, F1, F2, lens_params)
-    y2List, ty2List, _ = simulate(0, dthetay, F1, F2, lens_params)
+    y0List, ty0List, _ = simulate(0, 0, F1, F2, F3, lens_params, N=N, **kwargs)
+    y1List, ty1List, _ = simulate(dy, 0, F1, F2, F3, lens_params, N=N, **kwargs)
+    y2List, ty2List, _ = simulate(0, dthetay, F1, F2, F3, lens_params, N=N, **kwargs)
     ABCDList = []
     for i in range(len(y0List)):
         y0 = y0List[i]
@@ -264,13 +276,18 @@ def calculate_abcd(F1, F2, lens_params: dict = {}, **kwargs):
     return [np.array([[ABCD[0], ABCD[1]], [ABCD[2], ABCD[3]]]) for ABCD in ABCDList]
 
 
-def calculate_spherical_abbr(F1, F2, lens_params: dict = {}, **kwargs):
-    _, _, fyList = simulate(0, 0, F1, F2, lens_params, **kwargs)
+def calculate_spherical_abbr(F1, F2, F3, lens_params: dict = {}, N: int = 0, **kwargs):
+    _, _, fyList = simulate(0, 0, F1, F2, F3, lens_params, N=N, **kwargs)
     return float(np.std(np.array(fyList)))
 
 
+def objective_abcd_sym(x):
+    M = calculate_abcd(x[0], x[1], x[0], lens_params)[0]
+    return np.linalg.norm(M - (-np.eye(2)))
+
+
 def objective_abcd(x):
-    M = calculate_abcd(x[0], x[1], lens_params)[0]
+    M = calculate_abcd(x[0], x[1], x[2], lens_params)[0]
     return np.linalg.norm(M - (-np.eye(2)))
 
 
@@ -294,7 +311,7 @@ def objective_abbr(x):
         )
     ):
         return 1
-    return calculate_spherical_abbr(F0, F0, lens_params)
+    return calculate_spherical_abbr(F0, F0, F0, lens_params)
 
 
 if __name__ == "__main__":
@@ -312,25 +329,28 @@ if __name__ == "__main__":
     lens_params = {"R1": Rr1, "R2": Rr2, "CT": CT, "n": n}
 
     if TYPE == 0:
-        F0 = 27.0
+        F0 = 20.0
 
         F1 = F0
         F2 = F0
-        F1 = 27.491759905229046
-        F2 = 28.63518199145667
+        F3 = F0
+        F1 = 20.33333391820526
+        F2 = 19.99990162537117
 
+        F3 = F1
         #
-        print(calculate_abcd(F1, F2, lens_params, render=True)[0])
+        print(calculate_abcd(F1, F2, F3, lens_params, render=True, N=5)[0])
         plt.show()
         #
-        res = minimize(objective_abcd, [F1, F2], method="Nelder-Mead")
-        #
+        # res = minimize(objective_abcd, [F1, F2, F3], method="Nelder-Mead")
+        res = minimize(objective_abcd_sym, [F1, F2], method="Nelder-Mead")
+        # #
         print(f"F1 = {res.x[0]}")
         print(f"F2 = {res.x[1]}")
 
     elif TYPE == 1:
 
-        print(calculate_spherical_abbr(F0, F0, lens_params, render=True))
+        print(calculate_spherical_abbr(F0, F0, F0, lens_params, render=True))
         plt.show()
 
         res = minimize(

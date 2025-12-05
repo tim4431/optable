@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List, Tuple, Union, Sequence
+from typing import List, Tuple, Union, Sequence, Callable
 import copy
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
@@ -280,3 +280,14 @@ def solve_crosssection_ray_bboxes(
     hit = (t2 + EPS >= t1) & (t2 >= 0.0)
 
     return t1, t2, hit
+
+
+def base_merge_bboxs(bboxs):
+    return (
+        np.min([b[0] for b in bboxs]),
+        np.max([b[1] for b in bboxs]),
+        np.min([b[2] for b in bboxs]),
+        np.max([b[3] for b in bboxs]),
+        np.min([b[4] for b in bboxs]),
+        np.max([b[5] for b in bboxs]),
+    )

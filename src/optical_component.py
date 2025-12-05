@@ -489,6 +489,8 @@ class BaseRefraciveSurface(OpticalComponent):
         self.transmission = transmission
         #
         self._edge_color = "gray"
+        self.surface = kwargs.get("surface", Plane())
+        self.roc = self.surface.roc if hasattr(self.surface, "roc") else np.inf
 
     def interact_local(self, ray):
         P, t = self.intersect_point_local(ray)
@@ -497,7 +499,16 @@ class BaseRefraciveSurface(OpticalComponent):
         #
         rays = []
         #
-        ROC = self.roc if hasattr(self, "roc") else np.inf
+        # ROC is positive if center of curvature is toward nout side
+        ROC = np.inf
+        if hasattr(self, "roc"):
+            # if the roc is a callable function
+            if callable(self.roc):
+                ROC = self.roc(P)
+            else:
+                ROC = self.roc
+
+        # print("ROC:", ROC)
         if np.dot(ray.direction, normal) < 0:  # incident from n1 to n2
             nin, nout = n1, n2
         else:  # incident from n2 to n1

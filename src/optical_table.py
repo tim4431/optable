@@ -11,6 +11,14 @@ class OpticalTable:
         self.rays = []
         self.monitors = []
         self.norender_set = set()
+        self._bbox = (
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )  # (xmin, xmax, ymin, ymax, zmin, zmax)
 
     def add_components(self, component: Union[OpticalComponent, List]):
         if isinstance(component, OpticalComponent):
@@ -31,6 +39,18 @@ class OpticalTable:
                     self.monitors.append(m)
                 elif isinstance(m, list):
                     self.monitors.extend(m)
+
+    @property
+    def bbox(self):
+        if self._bbox[0] is None:
+            self.get_bbox()
+        return self._bbox
+
+    def get_bbox(self):
+        bboxes = [c.bbox for c in self.components]
+        bbox = base_merge_bboxs(bboxes)
+        self._bbox = bbox
+        return bbox
 
     def ray_tracing(self, rays: Union[Ray, List[Ray]], perfomance_limit=None):
         """

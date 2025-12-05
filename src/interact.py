@@ -636,7 +636,8 @@ if __name__ == "__main__":
         # "2d_beam_array_slm.py",
         # os.path.dirname(__file__),
         "../examples",
-        "real_lenses.py",
+        # "real_lenses.py",
+        "aspheric.py",
     )
     MODE = "interact"  # 'interact' | 'optimize' | 'scan'
 
