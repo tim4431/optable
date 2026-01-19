@@ -637,7 +637,7 @@ if __name__ == "__main__":
         # os.path.dirname(__file__),
         "../examples",
         # "real_lenses.py",
-        "aspheric.py",
+        "real_lenses.py",
     )
     MODE = "interact"  # 'interact' | 'optimize' | 'scan'
 

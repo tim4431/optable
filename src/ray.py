@@ -1,7 +1,7 @@
 from .base import *
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-_RAY_NONE_LENGTH = 50
+_RAY_NONE_LENGTH = 100
 
 
 class GaussianBeam:
