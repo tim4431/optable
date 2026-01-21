@@ -8,12 +8,18 @@ class Monitor(OpticalComponent):
         self.height = height
         self.surface = Rectangle(width, height)
         self._edge_color = "orange"
+        self.name = kwargs.get("name", None)
+        self._initialize()
+
+    def _initialize(self):
         self._data_raw = []  # list of tuples (P, intensity)
-        self._sortYZindex = None
         self._sorted_data = []
         self._updated = False
+        self._sortYZindex = None
         self._sort_method = None
-        self.name = kwargs.get("name", None)
+
+    def clear(self):
+        self._initialize()
 
     @property
     def ndata(self):
@@ -54,6 +60,15 @@ class Monitor(OpticalComponent):
         if self.ndata == 0:
             return np.array([])
         return np.array([data[0][2] for data in self._data_raw])
+
+    @property
+    def PList(self):
+        return self.get_PList()
+
+    def get_PList(self, sort="YZ"):
+        if self.ndata == 0:
+            return np.array([])
+        return np.array([data[0] for data in self.get_data(sort=sort)])
 
     @property
     def yList(self):
@@ -100,7 +115,7 @@ class Monitor(OpticalComponent):
     def get_directionList(self, sort="YZ"):
         if self.ndata == 0:
             return np.array([])
-        return np.array([r.direction for r in self.get_rList(sort=sort)])
+        return np.array([r.direction for r in self.get_rays(sort=sort)])
 
     @property
     def sortYZIndex(self):
@@ -325,6 +340,18 @@ class Monitor(OpticalComponent):
                     fontsize=8,
                     color="black",
                 )
+        #
+        annote_phase = kwargs.get("annote_phase", False)
+        if annote_phase:
+            for r, y, z, t in zip(self.rays, yList, zList, tList):
+                ax.text(
+                    y,
+                    z,
+                    f"Phi={r.phase(t):.2f}",
+                    fontsize=8,
+                    color="black",
+                )
+        #
         # GAUSSIAN BEAM
         gaussian_beam = kwargs.get("gaussian_beam", False)
         if gaussian_beam:

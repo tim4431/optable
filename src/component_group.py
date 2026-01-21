@@ -727,6 +727,7 @@ class ASphericLens(ComponentGroup):
 
 class ASphericExactSphericalLens(ASphericLens):
     def __init__(self, origin, EFL, CT, diameter, n, **kwargs):
+
         def f_asphere_1(r):
             return (EFL / (n + 1)) * (
                 -1 + np.sqrt(1 + (n + 1) / (n - 1) * (r**2) / (EFL**2))

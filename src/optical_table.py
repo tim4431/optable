@@ -192,6 +192,95 @@ class OpticalTable:
             aspect = kwargs.get("aspect", "equal")
             ax.set_aspect(aspect)
 
+    # >>> ABCD MATRIX CALCULATION
+    def calculate_abcd_matrix(
+        self,
+        mon0: Monitor,
+        mon1: Monitor,
+        rays: List[Ray],
+        disp=1e-5,
+        rot=1e-5,
+        debugaxs=None,
+    ) -> np.ndarray:
+        """Calculate the ABCD matrix between two monitors mon0 and mon1 (mon0 to mon1).
+        default principal axis is "Y".
+        raysids are the ids of the rays used to calculate the matrix. If None, use all rays that intersect with mon0.
+        The principal axis for each monitor is specified by pax0 and pax1, it can be either "Y" or "Z" or a custom vector lying on the plane of the monitor.
+        delta is the small perturbation applied to calculate the matrix elements.
+
+        Returns:
+            A Nray x 2 x 2 numpy array representing the ABCD matrix for each ray.
+        """
+        #
+        pax0_dispvec = mon0.tangent_Y
+        pax0_rotvec = mon0.tangent_Z
+
+        def _simulate(rays):
+            self.rays = []
+            mon0.clear()
+            mon1.clear()
+            self.ray_tracing(rays)
+            if debugaxs is not None:
+                self.render(ax=debugaxs, type="Z")
+
+        #
+        # VALIDATIONS
+        assert len(rays) > 0, "No rays to trace in ABCD calculation."
+        Nrays = len(rays)
+        raysids = [ray._id for ray in rays]
+        assert len(set(raysids)) == Nrays, "Redundant ray ids in ABCD calculation."
+        # sort rays by their ids
+        rays_idx_sortbyids = np.argsort(raysids)
+        rays = [rays[i] for i in rays_idx_sortbyids]
+        #
+        # RAY TRACING
+        _simulate(rays)
+        # get rays intersecting with monitors
+        rays_mon0 = mon0.get_rays(sort="ID")
+        raysid_mon0 = [ray._id for ray in rays_mon0]
+        assert set(raysids) == set(
+            raysid_mon0
+        ), "Rays at mon0 do not match the input rays."
+        PListmon0 = mon0.get_PList(sort="ID")
+        rays_mon1 = mon1.get_rays(sort="ID")
+        raysid_mon1 = [ray._id for ray in rays_mon1]
+        assert set(raysids) == set(
+            raysid_mon1
+        ), "Rays at mon1 do not match the input rays."
+        yList00 = mon1.get_yList(sort="ID")
+        tYList00 = mon1.get_tYList(sort="ID")
+        #
+        Ms = np.zeros((Nrays, 2, 2))  # store each ray's ABCD matrix
+        # now bias rays in principal axis, and perform ray tracing
+        rays_biased = []
+        # first bias in position
+        for idx in range(Nrays):
+            rays_biased.append(rays[idx]._Translate(pax0_dispvec * disp))
+        _simulate(rays_biased)
+        yList10 = mon1.get_yList(sort="ID")
+        tYList10 = mon1.get_tYList(sort="ID")
+        A = (yList10 - yList00) / disp
+        C = (tYList10 - tYList00) / disp
+        # then bias in angle
+        rays_biased = []
+        for idx in range(Nrays):
+            rays_biased.append(
+                rays[idx]._RotAround(pax0_rotvec, PListmon0[idx], rot)
+            )  # rotate around the intersection point on mon0
+        _simulate(rays_biased)
+        yList01 = mon1.get_yList(sort="ID")
+        tYList01 = mon1.get_tYList(sort="ID")
+        B = (yList01 - yList00) / rot
+        D = (tYList01 - tYList00) / rot
+        #
+        Ms[:, 0, 0] = A
+        Ms[:, 0, 1] = B
+        Ms[:, 1, 0] = C
+        Ms[:, 1, 1] = D
+
+        return Ms
+
+    # >>> EXPORTING FUNCTIONS
     def gather_rays_csv(self):
         """
         Gather all rays in the optical table.

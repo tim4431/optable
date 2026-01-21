@@ -62,9 +62,7 @@ class Ray(Vector):
         )  # Wavelength of the ray
         self.alive = alive  # Ray is alive means it has not been absorbed or terminated
         self.n = 1.0  # refractive index, default is 1.0
-        self._pathlength = (
-            0.0  # total path length traveled by the ray, at t=0, count in vacuum
-        )
+        self._pathlength = 0.0  # total path length traveled by the ray from its start, at t=0, count in vacuum
         #
         # >>> Gaussian Beam Parameters
         if qo is not None:
@@ -103,10 +101,10 @@ class Ray(Vector):
     def tangent_2(self):
         return self._normalize_vector(np.cross(self.direction, self.tangent_1))
 
-    def pathlength(self, t: float = 0):
-        return self._pathlength + t * self.n
+    def pathlength(self, t: float = 0) -> float:
+        return float(self._pathlength + t * self.n)
 
-    def phase(self, t: float = 0):
+    def phase(self, t: float = 0) -> float:
         return np.mod((2 * np.pi / self.wavelength) * self.pathlength(t), 2 * np.pi)
 
     def _RotAroundLocal(self, axis, localpoint, theta):
@@ -174,6 +172,7 @@ class Ray(Vector):
         # color = "blue" if self.length is None else "black"
         color = kwargs.get("color", "black")
         linewidth = kwargs.get("linewidth", 0.5)
+        linestyle = kwargs.get("linestyle", "-")
         alpha = max(0.1, min(1.0, self.intensity))
         length = self.length if self.length else _RAY_NONE_LENGTH
 
@@ -192,6 +191,7 @@ class Ray(Vector):
                     color=color,
                     alpha=alpha,
                     linewidth=linewidth,
+                    linestyle=linestyle,
                 )
 
             arrow = kwargs.get("ray_arrow", False)
@@ -217,6 +217,7 @@ class Ray(Vector):
                     fc=color,
                     ec=color,
                     alpha=alpha,
+                    linestyle=linestyle,
                 )
             #
 
@@ -282,6 +283,7 @@ class Ray(Vector):
                     pivot="middle",
                     color=color,
                     alpha=alpha,
+                    linestyle=linestyle,
                 )
 
             gaussian_beam = kwargs.get("gaussian_beam", False)

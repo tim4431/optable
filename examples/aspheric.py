@@ -52,11 +52,21 @@ asp = ASphericExactSphericalLens([F, 0, 0], EFL=F, CT=0.5, diameter=2.54, n=3).R
 asp1 = ASphericExactSphericalLens([3 * F, 0, 0], EFL=F, CT=0.5, diameter=2.54, n=3)
 # asp = Lens([F, 0, 0], focal_length=F, radius=2.54)
 # asp1 = Lens([3 * F, 0, 0], focal_length=F, radius=2.54)
+Mon0 = Monitor([0.001, 0, 0], width=2, height=2)
+Mon1 = Monitor([4 * F, 0, 0], width=2, height=2)
 
 table = OpticalTable()
 table.add_components([asp, asp1])
+table.add_monitors([Mon0, Mon1])
 table.ray_tracing(r0)
 table.render(ax0, type=PLOT_TYPE, gaussian_beam=True, roi=[-5, 4 * F + 5, -5, 5, -5, 5])
+Mon0.render_scatter(ax1[0], annote_phase=True)
+ax0.clear()
+Ms = table.calculate_abcd_matrix(Mon0, Mon1, r0, disp=1e-3, rot=1e-3, debugaxs=ax0)
+for i in range(Ms.shape[0]):
+    print(f"Ray ID {int(r0[i].id)}: ")
+    print(Ms[i])
+    print("")
 
 if __name__ == "__main__":
     plt.show()
