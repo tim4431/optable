@@ -64,13 +64,14 @@ def simulate(dy, dthetay, F1, F2, F3, lens_params: dict = {}, render=False, N: i
     # LENS = 0  # Ideal lens
     # LENS = 1  # F=35 Plano-Convex
     # LENS = 2  # F=30 Meniscus
-    # LENS = 3  # F=20 Plano-Convex
+    LENS = 3  # F=20 Plano-Convex
     # LENS = 4 # Biconvex best form
     # LENS = 5 # Doublet
     # LENS = 6  # ASpheric
     # LENS = 7  # Meniscus+ BiConvex+Meniscus
     # LENS = 8  # Custom lens
-    LENS = 9  # Jon's proposal
+    # LENS = 9  # Jon's proposal
+    # LENS = 10  # F=40 Plano-Convex
 
     if LENS == 0:
         R2l0r = Lens([F1, 0, 0], focal_length=F2, radius=2.54)
@@ -142,7 +143,7 @@ def simulate(dy, dthetay, F1, F2, F3, lens_params: dict = {}, render=False, N: i
             diameter=DL,
             R=Rr,
             name="L0",
-        ).RotZ(np.pi)
+        )
 
         R2l1r = PlanoConvexLens(
             [F1 + 2 * F2, 0, 0],
@@ -295,6 +296,32 @@ def simulate(dy, dthetay, F1, F2, F3, lens_params: dict = {}, render=False, N: i
         R2l2r = PlanoConvexLens(
             [4 * F0, 0, 0], EFL=F0, CT=1, diameter=DL, R=Rr, name="L2"
         )
+    elif LENS == 10:
+        # Thorlabs LA1725-B
+        EFLr = 39.87
+        CT = 0.46
+        Rr = 20.6
+        DL = 5.08
+        # F1 = EFLr
+        # F2 = EFLr
+        #
+        R2l0r = PlanoConvexLens(
+            [F1, 0, 0],
+            EFL=EFLr,
+            CT=CT,
+            diameter=DL,
+            R=Rr,
+            name="L0",
+        )
+
+        R2l1r = PlanoConvexLens(
+            [F1 + 2 * F2, 0, 0],
+            EFL=EFLr,
+            CT=CT,
+            diameter=DL,
+            R=Rr,
+            name="L1",
+        ).RotZ(np.pi)
 
     Mon0 = Monitor([F1 + F2, 0, 0], width=5, height=5, name="Monitor 0")
     Mon1 = Monitor([F1 + 2 * F2 + F3, 0, 0], width=10, height=10, name="Monitor 1")
@@ -376,6 +403,17 @@ def objective_abcd_sym(x):
     return np.linalg.norm(M - (-np.eye(2)))
 
 
+def objective_abcd_traced(x):
+    M = calculate_abcd(x[0], x[1], x[0], lens_params)[0]
+    A = M[0, 0]
+    B = M[0, 1]
+    C = M[1, 0]
+    D = M[1, 1]
+    d0 = 1.5
+    d = (d0 * A - B) / (D - C * d0)
+    return np.abs(d - d0)
+
+
 def objective_abcd(x):
     M = calculate_abcd(x[0], x[1], x[2], lens_params)[0]
     return np.linalg.norm(M - (-np.eye(2)))
@@ -450,9 +488,9 @@ def objective_abbr(x):
 
 
 if __name__ == "__main__":
-    # TYPE = 0
+    TYPE = 0
     # TYPE = 1
-    TYPE = 2
+    # TYPE = 2
     #
     F0 = 25.0
     n = 1.48
@@ -470,16 +508,22 @@ if __name__ == "__main__":
         F1 = F0
         F2 = F0
         F3 = F0
-        F1 = 20.33333391820526
-        F2 = 19.99990162537117
+        F1 = 20.338
+        F2 = 20.926
 
         F3 = F1
         #
-        print(calculate_abcd(F1, F2, F3, lens_params, render=True, N=5)[0])
+        print(calculate_abcd(F1, F2, F3, lens_params, render=True, N=3)[0])
         plt.show()
         #
         # res = minimize(objective_abcd, [F1, F2, F3], method="Nelder-Mead")
-        res = minimize(objective_abcd_sym, [F1, F2], method="Nelder-Mead")
+        # res = minimize(objective_abcd_sym, [F1, F2], method="Nelder-Mead")
+        res = minimize(
+            objective_abcd_traced,
+            [F1, F2],
+            method="Nelder-Mead",
+            options={"disp": True, "xatol": 1e-6, "fatol": 1e-9, "maxiter": 5000},
+        )
         # #
         print(f"F1 = {res.x[0]}")
         print(f"F2 = {res.x[1]}")

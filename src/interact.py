@@ -628,22 +628,22 @@ class InteractiveOpticalTable:
 if __name__ == "__main__":
     FILE_NAME = os.path.join(
         os.path.dirname(__file__),
-        # "../demo",
+        "../demo",
         # "1d_beam_focusing.py",
-        # "ripa_gen2_2nd.py",
+        "ripa_gen2_2nd.py",
         # "vipa_1st_demo.py",
         # "fig1a_wavefront.py",
         # "2d_beam_array_slm.py",
         # os.path.dirname(__file__),
-        "../examples",
+        # "../examples",
         # "real_lenses.py",
-        "real_lenses.py",
+        # "real_lenses.py",
     )
     MODE = "interact"  # 'interact' | 'optimize' | 'scan'
 
     table = InteractiveOpticalTable(fileName=FILE_NAME)
-    table._display_optimization = False  # enable cost function display
-    # table._display_optimization = True  # enable cost function display
+    # table._display_optimization = False  # enable cost function display
+    table._display_optimization = True  # enable cost function display
 
     match MODE:
         case "interact":

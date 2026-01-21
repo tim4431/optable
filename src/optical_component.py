@@ -442,6 +442,7 @@ class BaseMirror(OpticalComponent):
                 direction=reflected_direction,
                 intensity=ray.intensity * self.reflectivity,
                 qo=qo,
+                pathlength=ray.pathlength(t),
             )
             rays.append(reflected_ray)
         if self.transmission > 0:
@@ -450,6 +451,7 @@ class BaseMirror(OpticalComponent):
                 direction=ray.direction,
                 intensity=ray.intensity * self.transmission,
                 qo=qo,
+                pathlength=ray.pathlength(t),
             )
             rays.append(transmitted_ray)
         #
@@ -557,6 +559,7 @@ class BaseRefraciveSurface(OpticalComponent):
                     intensity=ray.intensity * self.transmission,
                     qo=qo_trans,
                     n=nout,
+                    pathlength=ray.pathlength(t),
                 )
                 rays.append(transmitted_ray)
         else:
@@ -567,6 +570,7 @@ class BaseRefraciveSurface(OpticalComponent):
                 direction=reflected_direction,
                 intensity=ray.intensity,
                 qo=qo_refl,
+                pathlength=ray.pathlength(t),
             )
             rays.append(reflected_ray)
 
@@ -578,6 +582,7 @@ class BaseRefraciveSurface(OpticalComponent):
                 direction=reflected_direction,
                 intensity=ray.intensity * self.reflectivity,
                 qo=qo_refl,
+                pathlength=ray.pathlength(t),
             )
             rays.append(reflected_ray)
         #

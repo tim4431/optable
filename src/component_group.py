@@ -1,4 +1,5 @@
 from .optical_component import *
+from .solver import *
 
 
 class ComponentGroup(OpticalComponent):
@@ -94,12 +95,14 @@ class ComponentGroup(OpticalComponent):
         new_rays_list = []
         # first does this ray even intersect with the bbox of this component group
         EPS = 1e-9
-        _, _, hits = solve_crosssection_ray_bboxes(ray.origin, ray.direction, self.bbox)
+        _, _, hits = solve_ray_bboxes_intersections(
+            ray.origin, ray.direction, self.bbox
+        )
         if not hits[0]:
             return None, None
         # then check each component
         bboxes = [np.array(c.bbox) for c in self.components]
-        t1s, t2s, hits = solve_crosssection_ray_bboxes(
+        t1s, t2s, hits = solve_ray_bboxes_intersections(
             ray.origin, ray.direction, bboxes
         )
         # print(f"ComponentGroup.interact: ray {ray._id} hits {np.sum(hits)} components")
@@ -270,11 +273,46 @@ class MMA(ComponentGroup):
                     **kwargs,
                 )
                 self.add_component(mirror)
-        #
+
         backsurface = SquareRefractive(
             origin=self.origin + np.array([thickness, 0, 0]),
             width=ny * pitch,
             height=nz * pitch,
+            n1=1,
+            n2=n,
+            reflectivity=0,
+            transmission=1,
+        )
+        self.add_component(backsurface)
+
+
+class MMADisordered(ComponentGroup):
+    """Microlens Mirror Array"""
+
+    def __init__(self, origin, PList, roc, n, thickness, roc_drift=0, **kwargs):
+        super().__init__(origin, **kwargs)
+        #
+        PList = np.array(PList)
+        assert PList.shape[1] == 3, "PList must be a list of 3D points"
+        #
+        for i in range(len(PList)):
+            o = np.array(PList[i]) + self.origin
+            roci = roc * (1 + roc_drift * np.random.randn())
+            # print(kwargs.get("transmission", None))
+            mirror = SphereRefractive(
+                origin=o + [-roci, 0, 0],
+                radius=roci,
+                height=roci - np.sqrt(roci**2 - (self.pitch / 2) ** 2),
+                n1=n,
+                n2=1.0,
+                **kwargs,
+            )
+            self.add_component(mirror)
+
+        backsurface = SquareRefractive(
+            origin=self.origin + np.array([thickness, 0, 0]),
+            width=(np.max(PList[:, 1]) - np.min(PList[:, 1])) * 1.1,
+            height=(np.max(PList[:, 2]) - np.min(PList[:, 2])) * 1.1,
             n1=1,
             n2=n,
             reflectivity=0,

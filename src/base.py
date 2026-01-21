@@ -236,52 +236,6 @@ def get_attr_str(obj, attr_name, default=None):
     )
 
 
-def solve_crosssection_ray_bboxes(
-    ray_origin, ray_direction, bboxes: Union[List[Tuple], Tuple]
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """for each set of bbox plane, solve the intersection with the ray [t1,t2]
-    then the intersection point should be intersection of [t1x,t2x], [t1y,t2y], [t1z,t2z]
-    return [t1, t2], if no intersection return [0, inf]
-    """
-    EPS = 1e-12
-    if isinstance(bboxes, tuple):
-        bboxes = [bboxes]
-    bboxes = np.array(bboxes)  # (n_boxes, 6)
-    #
-    # t1, t2 = 0, np.inf
-    t1, t2 = np.full(bboxes.shape[0], 0, dtype=float), np.full(
-        bboxes.shape[0], np.inf, dtype=float
-    )
-    for axis in range(3):
-        o = ray_origin[axis]
-        d = ray_direction[axis]
-        bmin = bboxes[:, 2 * axis]
-        bmax = bboxes[:, 2 * axis + 1]
-        #
-        if np.isclose(d, 0.0):
-            # parallel
-            outside = (o < bmin) | (o > bmax)
-            # Mark no-hit by forcing t1 > t2 for those
-            t1[outside] = 1
-            t2[outside] = 0
-            continue
-        inv_d = 1.0 / d
-        t_axis0 = (bmin - o) * inv_d
-        t_axis1 = (bmax - o) * inv_d
-
-        t_axis_near = np.minimum(t_axis0, t_axis1)
-        t_axis_far = np.maximum(t_axis0, t_axis1)
-
-        # Update global t1, t2 using this axis
-        t1 = np.maximum(t1, t_axis_near)
-        t2 = np.minimum(t2, t_axis_far)
-
-    # Valid hit: intervals overlap and intersection not entirely behind the origin
-    hit = (t2 + EPS >= t1) & (t2 >= 0.0)
-
-    return t1, t2, hit
-
-
 def base_merge_bboxs(bboxs):
     return (
         np.min([b[0] for b in bboxs]),

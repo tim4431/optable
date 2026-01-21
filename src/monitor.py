@@ -12,6 +12,7 @@ class Monitor(OpticalComponent):
         self._sortYZindex = None
         self._sorted_data = []
         self._updated = False
+        self._sort_method = None
         self.name = kwargs.get("name", None)
 
     @property
@@ -20,49 +21,86 @@ class Monitor(OpticalComponent):
 
     @property
     def data(self):
-        if not self._sorted_data or self._updated:
-            self._sorted_data = [self._data_raw[i] for i in self.sortYZIndex]
+        return self.get_data()
+
+    def get_data(self, sort="YZ"):
+        if (not self._sorted_data) or (self._updated) or (self._sort_method != sort):
+            if sort == "YZ":
+                self._sort_method = "YZ"
+                self._sorted_data = [self._data_raw[i] for i in self.sortYZIndex]
+            elif sort == "ID":
+                self._sort_method = "ID"
+                self._sorted_data = [self._data_raw[i] for i in self.sortIDindex]
             self._updated = False
         return self._sorted_data
 
     @property
     def rays(self):
-        return [data[3] for data in self.data]
+        return self.get_rays()
+
+    def get_rays(self, sort="YZ"):
+        if self.ndata == 0:
+            return []
+        return [data[3] for data in self.get_data(sort=sort)]
 
     @property
     def raw_yList(self):
+        if self.ndata == 0:
+            return np.array([])
         return np.array([data[0][1] for data in self._data_raw])
 
     @property
     def raw_zList(self):
+        if self.ndata == 0:
+            return np.array([])
         return np.array([data[0][2] for data in self._data_raw])
 
     @property
     def yList(self):
-        return np.array([data[0][1] for data in self.data])
+        return self.get_yList()
+
+    def get_yList(self, sort="YZ"):
+        if self.ndata == 0:
+            return np.array([])
+        return np.array([data[0][1] for data in self.get_data(sort=sort)])
 
     @property
     def zList(self):
-        return np.array([data[0][2] for data in self.data])
+        return self.get_zList()
+
+    def get_zList(self, sort="YZ"):
+        if self.ndata == 0:
+            return np.array([])
+        return np.array([data[0][2] for data in self.get_data(sort=sort)])
 
     @property
     def IList(self):
+        return self.get_IList()
+
+    def get_IList(self, sort="YZ"):
         """intensity list"""
-        return np.array([data[1] for data in self.data])
+        if self.ndata == 0:
+            return np.array([])
+        return np.array([data[1] for data in self.get_data(sort=sort)])
 
     @property
     def tList(self):
-        """tilt list"""
-        return np.array([data[2] for data in self.data])
+        return self.get_tList()
 
-    @property
-    def rList(self):
-        """ray list"""
-        return np.array([data[3] for data in self.data])
+    def get_tList(self, sort="YZ"):
+        """tilt list"""
+        if self.ndata == 0:
+            return np.array([])
+        return np.array([data[2] for data in self.get_data(sort=sort)])
 
     @property
     def directionList(self):
-        return np.array([r.direction for r in self.rList])
+        return self.get_directionList()
+
+    def get_directionList(self, sort="YZ"):
+        if self.ndata == 0:
+            return np.array([])
+        return np.array([r.direction for r in self.get_rList(sort=sort)])
 
     @property
     def sortYZIndex(self):
@@ -70,15 +108,23 @@ class Monitor(OpticalComponent):
         return self._sortYZindex
 
     @property
+    def sortIDindex(self):
+        self._sortIDindex = np.argsort([data[3]._id for data in self._data_raw])
+        return self._sortIDindex
+
+    @property
     def tYList(self):
-        directionList = self.directionList  # n*3
+        return self.get_tYList()
+
+    def get_tYList(self, sort="YZ"):
+        directionList = self.get_directionList(sort=sort)  # n*3
         # y component of the direction vector is the second component
         tYList = directionList[:, 1]  # n
         return tYList
 
     @property
-    def tZList(self):
-        directionList = self.directionList  # n*3
+    def tZList(self, sort="YZ"):
+        directionList = self.get_directionList(sort=sort)  # n*3
         # z component of the direction vector is the third component
         tZList = directionList[:, 2]  # n
         return tZList
@@ -114,9 +160,9 @@ class Monitor(OpticalComponent):
             local_ray = self.to_local_coordinates(r)
             P, t = self.intersect_point_local(local_ray)
             if P is not None:
-                # spot_size = r.spot_size(t) if r.qo is not None else 0
-                # Pts.append((P, local_ray.intensity, spot_size))
-                Pts.append((P, local_ray.intensity, t, r))
+                Pts.append(
+                    (P, local_ray.intensity, t, r)
+                )  # intersection point; intensity; distance along ray; original ray
         self._data_raw.extend(Pts)
         self._updated = True
 
@@ -167,11 +213,11 @@ class Monitor(OpticalComponent):
 
     @property
     def sum_intensity(self):
-        return np.sum([data[1] for data in self.data])
+        return np.sum([data[1] for data in self.get_data()])
 
     @property
     def avg_intensity(self):
-        return np.mean([data[1] for data in self.data])
+        return np.mean([data[1] for data in self.get_data()])
 
     @property
     def std_histy(self):
@@ -221,6 +267,7 @@ class Monitor(OpticalComponent):
             return
         yList = self.yList
         zList = self.zList
+        tList = self.tList
         IList = self.IList
         alpha = np.clip(IList, 0.1, 1)
         ax.scatter(yList, zList, marker="+", alpha=alpha, c="blue")
@@ -253,6 +300,28 @@ class Monitor(OpticalComponent):
                     y,
                     z,
                     f"{i}",
+                    fontsize=8,
+                    color="black",
+                )
+        #
+        annote_id = kwargs.get("annote_id", False)
+        if annote_id:
+            for r, y, z in zip(self.rays, yList, zList):
+                ax.text(
+                    y,
+                    z,
+                    f"{r._id}",
+                    fontsize=8,
+                    color="black",
+                )
+        #
+        annote_pathlength = kwargs.get("annote_pathlength", False)
+        if annote_pathlength:
+            for r, y, z, t in zip(self.rays, yList, zList, tList):
+                ax.text(
+                    y,
+                    z,
+                    f"L={r.pathlength(t):.2f}",
                     fontsize=8,
                     color="black",
                 )

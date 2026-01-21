@@ -62,6 +62,9 @@ class Ray(Vector):
         )  # Wavelength of the ray
         self.alive = alive  # Ray is alive means it has not been absorbed or terminated
         self.n = 1.0  # refractive index, default is 1.0
+        self._pathlength = (
+            0.0  # total path length traveled by the ray, at t=0, count in vacuum
+        )
         #
         # >>> Gaussian Beam Parameters
         if qo is not None:
@@ -99,6 +102,12 @@ class Ray(Vector):
     @property
     def tangent_2(self):
         return self._normalize_vector(np.cross(self.direction, self.tangent_1))
+
+    def pathlength(self, t: float = 0):
+        return self._pathlength + t * self.n
+
+    def phase(self, t: float = 0):
+        return np.mod((2 * np.pi / self.wavelength) * self.pathlength(t), 2 * np.pi)
 
     def _RotAroundLocal(self, axis, localpoint, theta):
         R = self.R(axis, theta)
