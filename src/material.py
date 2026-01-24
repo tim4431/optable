@@ -2,24 +2,22 @@ from .base import *
 
 
 class Material:
-    def __init__(self, name: str, n: Union[Callable, float], unit: float = 1e-2):
+    def __init__(self, name: str, n: Union[Callable, float]):
         self.name = name
         # n_func: function that takes wavelength (in m) and returns refractive index
         if isinstance(n, (int, float)):
             self.n_func = lambda wavelength: n  # constant refractive index
         else:
             self.n_func = n
-        self.unit = unit  # (default cm)
 
-    def n(self, wavelength: float) -> float:
-        """Get refractive index at given wavelength (in its unit)
+    def n(self, wavelength_m: float) -> float:
+        """Get refractive index at given wavelength (in m)
 
         Args:
-            wavelength (float): wavelength in its unit
+            wavelength (float): wavelength in m
         Returns:
             float: refractive index
         """
-        wavelength_m = wavelength * self.unit  # convert to m
         return self.n_func(wavelength_m)
 
 
@@ -33,7 +31,7 @@ def plot_material_refractive_index(
         wl_max (float): maximum wavelength in cm
     """
     wl_list = np.linspace(wl_min_m, wl_max_m, 100)
-    n_list = [material.n(wl / material.unit) for wl in wl_list]
+    n_list = [material.n(wl) for wl in wl_list]
     plt.plot(np.array(wl_list) * 1e6, n_list)  # convert to microns
     plt.xlabel("Wavelength (microns)")
     plt.ylabel("Refractive Index")
@@ -58,9 +56,13 @@ class RefractiveIndex:
         if material is None:
             raise AttributeError(f"Material for {self.storage_name} not initialized.")
 
-        def get_n(wavelength=None):
-            wl = wavelength if wavelength is not None else instance.wavelength
-            return float(material.n(wl))
+        def get_n(wavelength_m=None):
+            wl_m = (
+                wavelength_m
+                if wavelength_m is not None
+                else instance.wavelength * instance.unit
+            )
+            return float(material.n(wl_m))
 
         return get_n
 
@@ -70,15 +72,17 @@ class RefractiveIndex:
             # Use __dict__ to bypass the descriptor and avoid recursion
             instance.__dict__[self.storage_name] = value
         else:
-            unit = getattr(instance, "unit", 1e-2)  # default to cm if not set
             # setattr(
             #     instance,
             #     self.storage_name,
-            #     Material("Constant", n=float(value), unit=unit),
+            #     Material("Constant", n=float(value)),
             # )
-            instance.__dict__[self.storage_name] = Material(
-                "Constant", n=float(value), unit=unit
-            )
+            instance.__dict__[self.storage_name] = Material("Constant", n=float(value))
+
+
+class Vacuum(Material):
+    def __init__(self):
+        super().__init__("Vacuum", n=1.0)
 
 
 class SellmeierMaterial(Material):

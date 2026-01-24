@@ -6,7 +6,7 @@ import numpy as np, time, csv
 
 
 class OpticalTable:
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.components = []
         self.rays = []
         self.monitors = []
@@ -19,6 +19,7 @@ class OpticalTable:
             None,
             None,
         )  # (xmin, xmax, ymin, ymax, zmin, zmax)
+        self.unit = kwargs.get("unit", 1e-2)  # default unit is cm
 
     def add_components(self, component: Union[OpticalComponent, List]):
         if isinstance(component, OpticalComponent):
@@ -378,6 +379,29 @@ class OpticalTable:
             pbar.close()
             F1_opt, F2_opt = res.x
             return F1_opt, F2_opt
+
+    # >>> VISUALIZATION FUNCTIONS
+    def add_wavelength_legend(self, ax, wavelengths):
+        """
+        Adds a custom color legend to an existing ax for specified wavelengths.
+        wavelengths: list of floats/ints in nm
+        """
+        from matplotlib.lines import Line2D
+
+        # Create the 'Proxy' line objects for the legend
+        # We use the wavelength_to_rgb function defined earlier
+        proxies = []
+        for wl in wavelengths:
+            wl_m = wl * self.unit  # convert to nm
+            color = wavelength_to_rgb(wl_m)
+            line = Line2D([0], [0], color=color, lw=3, label=f"{int(wl_m*1e9)} nm")
+            proxies.append(line)
+
+        # Optional: Merge with existing legend items if the plot already has them
+        existing_handles, _ = ax.get_legend_handles_labels()
+
+        # Update the legend
+        ax.legend(handles=existing_handles + proxies, loc="best")
 
     # >>> EXPORTING FUNCTIONS
     def gather_rays_csv(self):

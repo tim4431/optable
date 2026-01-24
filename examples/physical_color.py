@@ -1,6 +1,11 @@
+import numpy as np, sys, matplotlib.pyplot as plt, matplotlib.gridspec as gridspec
+
+sys.path.append("../")
+from src import *
+
 # 1. Setup Data
 wavelengths = np.linspace(350, 2500, 1000)
-colors = [wavelength_to_rgb(w) for w in wavelengths]
+colors = [wavelength_to_rgb(w * 1e-9) for w in wavelengths]
 
 # 2. Create the Plot
 fig, ax = plt.subplots(figsize=(12, 3))

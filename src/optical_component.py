@@ -499,7 +499,8 @@ class BaseRefraciveSurface(OpticalComponent):
     def interact_local(self, ray):
         P, t = self.intersect_point_local(ray)
         normal = self.surface.normal(P)
-        n1, n2 = self._n1(ray.wavelength), self._n2(ray.wavelength)
+        n1 = self._n1(ray.wavelength * ray.unit)
+        n2 = self._n2(ray.wavelength * ray.unit)
         #
         rays = []
         #

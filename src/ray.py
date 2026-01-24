@@ -177,7 +177,11 @@ class Ray(Vector):
 
         # Set color and transparency based on ray properties
         # color = "blue" if self.length is None else "black"
-        color = kwargs.get("color", "black")
+        physical_color = kwargs.get("physical_color", False)
+        if physical_color and self.wavelength is not None:
+            color = wavelength_to_rgb(self.wavelength * self.unit)
+        else:
+            color = kwargs.get("color", "black")
         linewidth = kwargs.get("linewidth", 0.5)
         linestyle = kwargs.get("linestyle", "-")
         alpha = max(0.1, min(1.0, self.intensity))
@@ -243,7 +247,8 @@ class Ray(Vector):
                 pts_y = np.concatenate(
                     [y + spots_size * vx, y[::-1] + spots_size[::-1] * (-vx)]
                 )
-                ax.fill(pts_x, pts_y, color="red", alpha=alpha / 2, ec=None)
+                fill_color = "red" if not physical_color else color
+                ax.fill(pts_x, pts_y, color=fill_color, alpha=alpha / 2, ec=None)
                 #
                 z_to_waist = -self.distance_to_waist(self.qo)
                 annote_waist = kwargs.get("annote_waist", True)

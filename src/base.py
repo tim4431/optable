@@ -277,17 +277,36 @@ def wavelength_to_rgb(wavelength_m, gamma=0.8):
         attenuation = 0.3 + 0.7 * (750 - wavelength) / (750 - 590)
         R = (1.0 * attenuation) ** gamma
 
-    # --- Infrared False Color Mapping (> 750 nm) ---
-    elif 750 < wavelength <= 1400:
-        # Near IR: Represented as Deep Maroon
-        ratio = (wavelength - 750) / (1400 - 750)
-        R = 0.3 + 0.2 * (1 - ratio)  # Constant dark red intensity
-        G, B = 0.0, 0.0
-    elif 1400 < wavelength <= 2500:
-        # Short-wave IR: Transition Maroon -> Dark Earthy Brown
-        ratio = (wavelength - 1400) / (2500 - 1400)
-        R = 0.3 * (1 - ratio) + 0.2 * ratio
-        G = 0.1 * ratio
-        B = 0.05 * ratio
+    # # --- Infrared False Color Mapping (> 750 nm) ---
+    # elif 750 < wavelength <= 1400:
+    #     # Near IR: Represented as Deep Maroon
+    #     ratio = (wavelength - 750) / (1400 - 750)
+    #     R = 0.3 + 0.2 * (1 - ratio)  # Constant dark red intensity
+    #     G, B = 0.0, 0.0
+    # elif 1400 < wavelength <= 2500:
+    #     # Short-wave IR: Transition Maroon -> Dark Earthy Brown
+    #     ratio = (wavelength - 1400) / (2500 - 1400)
+    #     R = 0.3 * (1 - ratio) + 0.2 * ratio
+    #     G = 0.1 * ratio
+    #     B = 0.05 * ratio
+
+    # --- High-Contrast IR Mapping ---
+    elif 750 < wavelength <= 1100:
+        # Near IR: Shift from Deep Red to Bright Magenta
+        ratio = (wavelength - 750) / (1100 - 750)
+        R = 1.0
+        G = 0.0
+        B = ratio  # Adding blue makes it Magenta
+    elif 1100 < wavelength <= 1800:
+        # Short-wave IR: Shift from Magenta to Cyan
+        ratio = (wavelength - 1100) / (1800 - 1100)
+        R = 1.0 - ratio
+        G = ratio
+        B = 1.0
+    elif 1800 < wavelength <= 2500:
+        # Mid-IR: Steady Teal/Cyan
+        R, G, B = 0.0, 0.5, 0.5
+    else:
+        R, G, B = 0.0, 0.0, 0.0
 
     return (R, G, B)

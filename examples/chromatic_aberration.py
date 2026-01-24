@@ -16,36 +16,39 @@ if __name__ == "__main__":
     ax1 = [plt.subplot(gs1[i]) for i in range(3)]
 
 
-# Thorlabs LA1353 - 75mm
-EFLr = 20
-CT = 1.01
-Rr = 10.3
-DL = 7.5
-ROTL0 = False
-R2l0r = PlanoConvexLens(
-    [EFLr, 0, 0],
-    EFL=EFLr,
-    CT=CT,
-    diameter=DL,
-    R=Rr,
-    name="L0",
-)
-N = 3
-D = 0.5
-R2wl = 780e-7  # in cm
-R2w0 = 61e-4  # in cm
 r0 = [
-    Ray([-10, i * D, 0], [1, 0, 0], wavelength=R2wl, w0=R2w0, id=int(i + N)).Propagate(
-        -10
-    )
-    for i in np.arange(-N, N + 1)
+    Ray(
+        [-3, 2, 0],
+        [np.cos(np.pi / 6), -np.sin(np.pi / 6), 0],
+        wavelength=780e-7,
+        w0=20e-4,
+    ).Propagate(-2),
 ]
-rays = multiplex_rays_in_wavelength(r0, [780e-7, 560e-7, 1230e-7])
+L = 2
+D = 0.5
+rays = multiplex_rays_in_wavelength(r0, [780e-7, 560e-7, 400e-7])
 
+gs = GlassSlab(
+    [0, 0, 0],
+    width=L,
+    height=L,
+    thickness=D,
+    n1=Vacuum(),
+    n2=Glass_NBK7(),
+    reflectivity=0.2,
+)
+components = [gs]
 table = OpticalTable()
-table.add_components([R2l0r])
+table.add_components(components)
 table.ray_tracing(rays)
-table.render(ax0, type="Z", roi=[-5, 2 * EFLr + 5, -5, 5], gaussian_beam=True)
+table.render(
+    ax0,
+    type=PLOT_TYPE,
+    roi=(-5, 15, -5, 5, -5, 5),
+    # gaussian_beam=True,
+    physical_color=True,
+)
+
 
 if __name__ == "__main__":
     plt.show()
