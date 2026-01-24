@@ -25,6 +25,7 @@ class Vector(Base):
     def __init__(self, origin, **kwargs):
         super().__init__(**kwargs)
         self.origin = np.array(origin, dtype=float)
+        self.unit = kwargs.get("unit", 1e-2)  # default unit is cm
 
     def _normalize_vector(self, vector) -> np.ndarray:
         vec = np.array(vector, dtype=float)
@@ -245,3 +246,48 @@ def base_merge_bboxs(bboxs):
         np.min([b[4] for b in bboxs]),
         np.max([b[5] for b in bboxs]),
     )
+
+
+def wavelength_to_rgb(wavelength_m, gamma=0.8):
+    """
+    Converts wavelength (nm) to an RGB tuple (range 0.0 to 1.0).
+    Based on Dan Bruton's algorithm, extended for False Color Infrared.
+    """
+    wavelength = float(wavelength_m) * 1e9
+    R, G, B = 0.0, 0.0, 0.0
+
+    # --- Visible Spectrum (380 - 750 nm) ---
+    if 380 <= wavelength <= 440:
+        attenuation = 0.3 + 0.7 * (wavelength - 380) / (440 - 380)
+        R = ((-(wavelength - 440) / (440 - 380)) * attenuation) ** gamma
+        B = (1.0 * attenuation) ** gamma
+    elif 440 <= wavelength <= 485:
+        G = ((wavelength - 440) / (485 - 440)) ** gamma
+        B = 1.0
+    elif 485 <= wavelength <= 500:
+        G = 1.0
+        B = (-(wavelength - 500) / (500 - 485)) ** gamma
+    elif 500 <= wavelength <= 565:
+        R = ((wavelength - 500) / (565 - 500)) ** gamma
+        G = 1.0
+    elif 565 <= wavelength <= 590:
+        R = 1.0
+        G = (-(wavelength - 590) / (590 - 565)) ** gamma
+    elif 590 <= wavelength <= 750:
+        attenuation = 0.3 + 0.7 * (750 - wavelength) / (750 - 590)
+        R = (1.0 * attenuation) ** gamma
+
+    # --- Infrared False Color Mapping (> 750 nm) ---
+    elif 750 < wavelength <= 1400:
+        # Near IR: Represented as Deep Maroon
+        ratio = (wavelength - 750) / (1400 - 750)
+        R = 0.3 + 0.2 * (1 - ratio)  # Constant dark red intensity
+        G, B = 0.0, 0.0
+    elif 1400 < wavelength <= 2500:
+        # Short-wave IR: Transition Maroon -> Dark Earthy Brown
+        ratio = (wavelength - 1400) / (2500 - 1400)
+        R = 0.3 * (1 - ratio) + 0.2 * ratio
+        G = 0.1 * ratio
+        B = 0.05 * ratio
+
+    return (R, G, B)

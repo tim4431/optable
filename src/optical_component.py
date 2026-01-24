@@ -469,11 +469,14 @@ class BaseMirror(OpticalComponent):
 
 
 class BaseRefraciveSurface(OpticalComponent):
+    _n1 = RefractiveIndex("_n1")
+    _n2 = RefractiveIndex("_n2")
+
     def __init__(
         self,
         origin,
-        n1: Union[float, callable] = 1.0,
-        n2: Union[float, callable] = 1.0,
+        n1: Union[float, Material] = 1.0,
+        n2: Union[float, Material] = 1.0,
         reflectivity: float = 0.0,
         transmission: float = 1.0,
         **kwargs,
@@ -482,14 +485,9 @@ class BaseRefraciveSurface(OpticalComponent):
         n1: x>0, n2: x<0
         """
         super().__init__(origin, **kwargs)
-        if isinstance(n1, (int, float)):
-            self.n1 = lambda l: n1
-        else:
-            self.n1 = n1
-        if isinstance(n2, (int, float)):
-            self.n2 = lambda l: n2
-        else:
-            self.n2 = n2
+
+        self._n1 = n1
+        self._n2 = n2
         #
         self.reflectivity = reflectivity
         self.transmission = transmission
@@ -501,7 +499,7 @@ class BaseRefraciveSurface(OpticalComponent):
     def interact_local(self, ray):
         P, t = self.intersect_point_local(ray)
         normal = self.surface.normal(P)
-        n1, n2 = self.n1(ray.wavelength), self.n2(ray.wavelength)
+        n1, n2 = self._n1(ray.wavelength), self._n2(ray.wavelength)
         #
         rays = []
         #
@@ -562,7 +560,7 @@ class BaseRefraciveSurface(OpticalComponent):
                     direction=transmitted_direction,
                     intensity=ray.intensity * self.transmission,
                     qo=qo_trans,
-                    n=nout,
+                    _n=nout,
                     _pathlength=ray.pathlength(float(t)),
                 )
                 rays.append(transmitted_ray)
@@ -639,8 +637,8 @@ class SquareRefractive(BaseRefraciveSurface):
         origin,
         width: float = 1.0,
         height: float = 1.0,
-        n1: Union[float, callable] = 1.0,
-        n2: Union[float, callable] = 1.0,
+        n1: Union[float, Material] = 1.0,
+        n2: Union[float, Material] = 1.0,
         reflectivity: float = 0.0,
         transmission: float = 1.0,
         **kwargs,
@@ -663,8 +661,8 @@ class CircleRefractive(BaseRefraciveSurface):
         self,
         origin,
         radius: float = 0.5,
-        n1: Union[float, callable] = 1.0,
-        n2: Union[float, callable] = 1.0,
+        n1: Union[float, Material] = 1.0,
+        n2: Union[float, Material] = 1.0,
         reflectivity: float = 0.0,
         transmission: float = 1.0,
         **kwargs,
@@ -687,8 +685,8 @@ class SphereRefractive(BaseRefraciveSurface):
         origin,
         radius: float = 0.5,
         height: float = 0.5,
-        n1: Union[float, callable] = 1.0,
-        n2: Union[float, callable] = 1.0,
+        n1: Union[float, Material] = 1.0,
+        n2: Union[float, Material] = 1.0,
         reflectivity: float = 0.0,
         transmission: float = 1.0,
         **kwargs,

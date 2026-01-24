@@ -190,10 +190,10 @@ class Monitor(OpticalComponent):
 
     def get_waist_distance(self):
         tList = self.tList
-        rList = self.rList
+        rays = self.rays
         # account for beam propagation direction
         waist_distance_List = []
-        for r, t in zip(rList, tList):
+        for r, t in zip(rays, tList):
             q = r.q_at_z(t)
             distance_raw = r.distance_to_waist(q)
             if np.dot(r.direction, self.normal) > 0:

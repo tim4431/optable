@@ -1,5 +1,6 @@
 from .base import *
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from .material import *
 
 _RAY_NONE_LENGTH = 100
 
@@ -41,6 +42,8 @@ class GaussianBeam:
 
 
 class Ray(Vector):
+    _n = RefractiveIndex("_n")  # refractive index
+
     def __init__(
         self,
         origin,
@@ -61,7 +64,7 @@ class Ray(Vector):
             float(wavelength) if wavelength else None
         )  # Wavelength of the ray
         self.alive = alive  # Ray is alive means it has not been absorbed or terminated
-        self.n = 1.0  # refractive index, default is 1.0
+        self._n = 1.0  # default vacuum
         self._pathlength = 0.0  # total path length traveled by the ray from its start, at t=0, count in vacuum
         #
         # >>> Gaussian Beam Parameters
@@ -84,6 +87,10 @@ class Ray(Vector):
     def direction(self, direction):
         self._direction = self._normalize_vector(direction)
         # print(self._direction)
+
+    @property
+    def n(self):
+        return self._n()
 
     @property
     def transform_matrix(self):
@@ -347,3 +354,23 @@ class Ray(Vector):
                         color="black",
                         alpha=alpha,
                     )
+
+
+def multiplex_rays_in_wavelength(
+    rays: List[Ray], wavelength_list: List[float]
+) -> List[Ray]:
+    """Create multiple rays with different wavelengths from a single ray.
+
+    Args:
+        rays (List[Ray]): List of Ray objects to be multiplexed.
+        wavelength_list (List[float]): List of wavelengths to assign to the rays.
+
+    Returns:
+        List[Ray]: New list of Ray objects with assigned wavelengths.
+    """
+    multiplexed_rays = []
+    for wl in wavelength_list:
+        for ray in rays:
+            new_ray = ray.copy(wavelength=wl)
+            multiplexed_rays.append(new_ray)
+    return multiplexed_rays

@@ -105,3 +105,28 @@ def solve_ray_ray_intersection(
     n = norm / np.linalg.norm(norm)
 
     return t1, t2, P, n
+
+
+def solve_normal_to_normal_rotation(n1, n2) -> Tuple[np.ndarray, float]:
+    """Solve the rotation axis and angle to rotate n1 to n2
+
+    Args:
+        n1 (np.ndarray): normal vector 1
+        n2 (np.ndarray): normal vector 2
+
+    Returns:
+        Tuple[np.ndarray,float]: rotation axis, rotation angle in radian
+    """
+    n1 = n1 / np.linalg.norm(n1)
+    n2 = n2 / np.linalg.norm(n2)
+    #
+    axis = np.cross(n1, n2)
+    axis_norm = np.linalg.norm(axis)
+    if axis_norm < 1e-12:
+        # parallel
+        return np.array([1, 0, 0]), 0.0
+    axis = axis / axis_norm
+    #
+    cos_theta = np.clip(np.dot(n1, n2), -1.0, 1.0)
+    theta = np.arccos(cos_theta)
+    return axis, theta

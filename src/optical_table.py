@@ -280,6 +280,105 @@ class OpticalTable:
 
         return Ms
 
+    @staticmethod
+    def calibrate_symmetric_4f(
+        lens: Union[OpticalComponent, ComponentGroup],
+        rays: List[Ray],
+        F10: float,
+        F20: float,
+        criterion: str = "M=-I",
+        debugaxs=None,
+        optimize=True,
+        display_M=False,
+    ):
+        """Calibrate a symmetric 4f system formed by two lenses and two monitors.
+        The distances are mon0 - F1 - lens - 2*F2 - lens(rotated 180) - F1 - mon1.
+        The function will adjust the distances F1 and F2 to achieve the desired 4f imaging condition.
+
+        Parameters:
+            lens: OpticalComponent, the lens to be calibrated.
+            rays: List[Ray], the rays to be traced.
+            F10,F20: float, the initial distances.
+            debugaxs: matplotlib axes, optional, for debugging visualization.
+        Returns:
+            F1, F2: calibrated distances.
+        """
+        from scipy.optimize import minimize
+        from tqdm import tqdm
+
+        # create a copy of lens
+        def simulate(F1, F2):
+            dr0 = np.array([F1, 0, 0]) - lens.origin
+            l0 = lens.copy()._Translate(dr0)
+            dr1 = np.array([F1 + 2 * F2, 0, 0]) - lens.origin
+            l1 = lens.copy()._Translate(dr1).RotZ(np.pi)
+            Mon0 = Monitor(origin=[0, 0, 0], width=5, height=5)
+            Mon1 = Monitor(origin=[2 * F1 + 2 * F2, 0, 0], width=5, height=5)
+            table = OpticalTable()
+            table.add_components([l0, l1])
+            table.add_monitors([Mon0, Mon1])
+            Ms = table.calculate_abcd_matrix(Mon0, Mon1, rays)
+            #
+            if not optimize:
+                table.ray_tracing(rays)
+                print(
+                    "Rendering 4f system with F1={:.4f}, F2={:.4f} ...".format(F1, F2)
+                )
+                table.render(ax=debugaxs, type="Z" if debugaxs is not None else None)
+            return Ms
+
+        def _cost_func_M_equal_mI(F1, F2):
+            Ms = simulate(F1, F2)
+            cost = 0
+            for M in Ms:
+                cost += np.linalg.norm(M + np.eye(2))
+            cost /= len(Ms)
+            if display_M:
+                for M in Ms:
+                    print(M)
+            pbar.set_description(f"Testing F1={F1:.4f}, F2={F2:.4f}, cost={cost:.6f}")
+            return cost
+
+        def _cost_func_flat_field(F1, F2):
+            Ms = simulate(F1, F2)
+            cost = 0
+            for M in Ms:
+                A = M[0, 0]
+                B = M[0, 1]
+                C = M[1, 0]
+                D = M[1, 1]
+                d0 = 1.5
+                ds = (d0 * A - B) / (D - C * d0)
+                cost += np.abs(ds - d0)
+            cost /= len(Ms)
+            pbar.set_description(f"Testing F1={F1:.4f}, F2={F2:.4f}, cost={cost:.6f}")
+            return cost
+
+        def cost_function():
+            # if "pbar" in locals():
+            pbar.update(1)
+            if criterion == "M=-I":
+                return _cost_func_M_equal_mI
+            elif criterion == "flat_field":
+                return _cost_func_flat_field
+            else:
+                raise ValueError(f"Unknown criterion: {criterion}")
+
+        if not optimize:
+            simulate(F10, F20)
+            return F10, F20
+        else:
+            pbar = tqdm(total=500, desc="Optimizing 4f system")
+            res = minimize(
+                lambda x: cost_function()(x[0], x[1]),
+                x0=[F10, F20],
+                method="Nelder-Mead",
+                options={"disp": True, "xatol": 1e-5, "maxiter": 50},
+            )
+            pbar.close()
+            F1_opt, F2_opt = res.x
+            return F1_opt, F2_opt
+
     # >>> EXPORTING FUNCTIONS
     def gather_rays_csv(self):
         """

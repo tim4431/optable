@@ -256,13 +256,21 @@ class MMA(ComponentGroup):
         if isinstance(N, int):
             N = (N, 1)
         ny, nz = N
+        if isinstance(roc, (int, float)):
+            roc = np.ones((nz, ny)) * roc
+        else:
+            roc = np.array(roc)
+            assert roc.shape == (
+                nz,
+                ny,
+            ), f"roc shape {roc.shape} does not match ({nz}, {ny})"
         #
         for i in range(nz):
             for j in range(ny):
                 z = (i - (nz - 1) / 2) * pitch
                 y = (j - (ny - 1) / 2) * pitch
                 o = np.array([0, y, z]) + self.origin
-                roci = roc * (1 + roc_drift * np.random.randn())
+                roci = roc[i, j] * (1 + roc_drift * np.random.randn())
                 # print(kwargs.get("transmission", None))
                 mirror = SphereRefractive(
                     origin=o + [-roci, 0, 0],
@@ -289,15 +297,35 @@ class MMA(ComponentGroup):
 class MMADisordered(ComponentGroup):
     """Microlens Mirror Array"""
 
-    def __init__(self, origin, PList, roc, n, thickness, roc_drift=0, **kwargs):
+    def __init__(
+        self,
+        origin,
+        PList,
+        pitch,
+        roc,
+        n,
+        thickness,
+        roc_drift=0,
+        nList=None,
+        **kwargs,
+    ):
         super().__init__(origin, **kwargs)
+        self.pitch = pitch
         #
         PList = np.array(PList)
         assert PList.shape[1] == 3, "PList must be a list of 3D points"
+        if nList is not None:
+            nList = np.array(nList)
+            assert nList.shape[0] == PList.shape[0], "nList must match PList length"
+        if isinstance(roc, (int, float)):
+            roc = np.ones(PList.shape[0]) * roc
+        else:
+            roc = np.array(roc)
+            assert roc.shape[0] == PList.shape[0], "roc must match PList length"
         #
         for i in range(len(PList)):
             o = np.array(PList[i]) + self.origin
-            roci = roc * (1 + roc_drift * np.random.randn())
+            roci = roc[i] * (1 + roc_drift * np.random.randn())
             # print(kwargs.get("transmission", None))
             mirror = SphereRefractive(
                 origin=o + [-roci, 0, 0],
@@ -307,6 +335,11 @@ class MMADisordered(ComponentGroup):
                 n2=1.0,
                 **kwargs,
             )
+            if nList is not None:
+                n1 = mirror.normal
+                n2 = -nList[i]
+                axis, theta = solve_normal_to_normal_rotation(n1, n2)
+                mirror._RotAroundLocal(axis, [roci, 0, 0], theta)
             self.add_component(mirror)
 
         backsurface = SquareRefractive(
@@ -732,6 +765,39 @@ class ASphericExactSphericalLens(ASphericLens):
             return (EFL / (n + 1)) * (
                 -1 + np.sqrt(1 + (n + 1) / (n - 1) * (r**2) / (EFL**2))
             )
+
+        super().__init__(
+            origin,
+            CT,
+            f_asphere_1,
+            None,
+            diameter,
+            n,
+            **kwargs,
+        )
+
+
+class ASphericParametricLens(ASphericLens):
+    def __init__(
+        self,
+        origin,
+        CT,
+        diameter,
+        n,
+        R,
+        kappa,
+        a4=0,
+        a6=0,
+        a8=0,
+        **kwargs,
+    ):
+
+        def f_asphere_1(r):
+            term1 = r**2 / (R * (1 + np.sqrt(1 - (1 + kappa) * (r**2) / (R**2))))
+            term2 = a4 * r**4
+            term3 = a6 * r**6
+            term4 = a8 * r**8
+            return term1 + term2 + term3 + term4
 
         super().__init__(
             origin,
