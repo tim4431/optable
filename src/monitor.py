@@ -77,7 +77,10 @@ class Monitor(OpticalComponent):
     def get_yList(self, sort="YZ"):
         if self.ndata == 0:
             return np.array([])
-        return np.array([data[0][1] for data in self.get_data(sort=sort)])
+        tangent_Y = self.tangent_Y  # 3
+        return np.array(
+            [np.dot(data[0], tangent_Y) for data in self.get_data(sort=sort)]
+        )
 
     @property
     def zList(self):
@@ -86,7 +89,10 @@ class Monitor(OpticalComponent):
     def get_zList(self, sort="YZ"):
         if self.ndata == 0:
             return np.array([])
-        return np.array([data[0][2] for data in self.get_data(sort=sort)])
+        tangent_Z = self.tangent_Z  # 3
+        return np.array(
+            [np.dot(data[0], tangent_Z) for data in self.get_data(sort=sort)]
+        )
 
     @property
     def IList(self):
@@ -134,14 +140,18 @@ class Monitor(OpticalComponent):
     def get_tYList(self, sort="YZ"):
         directionList = self.get_directionList(sort=sort)  # n*3
         # y component of the direction vector is the second component
-        tYList = directionList[:, 1]  # n
+        # tYList = directionList[:, 1]  # n
+        tangent_Y = self.tangent_Y  # 3
+        tYList = np.dot(directionList, tangent_Y)  # n
         return tYList
 
     @property
     def tZList(self, sort="YZ"):
         directionList = self.get_directionList(sort=sort)  # n*3
         # z component of the direction vector is the third component
-        tZList = directionList[:, 2]  # n
+        # tZList = directionList[:, 2]  # n
+        tangent_Z = self.tangent_Z  # 3
+        tZList = np.dot(directionList, tangent_Z)  # n
         return tZList
 
     def get_ray_i(self, idx):
@@ -357,7 +367,7 @@ class Monitor(OpticalComponent):
         if gaussian_beam:
             spot_size_scale = kwargs.get("spot_size_scale", 1.0)
             tList = self.tList
-            rList = self.rList
+            rList = self.rays
             spotsizeList = (
                 np.array([r.spot_size(t) for r, t in zip(rList, tList)])
                 * spot_size_scale

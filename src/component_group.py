@@ -422,13 +422,74 @@ class WedgePlate(ComponentGroup):
         )
 
 
+class Prism(ComponentGroup):
+    def __init__(
+        self,
+        origin,
+        width=1.0,
+        height=1.0,
+        n1=1.0,
+        n2=1.5,
+        angle: float = np.pi / 2,
+        reflectivity=0,
+        transmission=1,
+        **kwargs,
+    ):
+        """L=width, H=height,(L,L,sqrt(2)L)x H, origin at right-angle corner
+        |\s
+        |/
+        """
+        super().__init__(origin, **kwargs)
+        # +45deg face
+        self.add_component(
+            SquareRefractive(
+                origin + np.array([0, width / 2, 0]),
+                width,
+                height,
+                n1,
+                n2,
+                reflectivity=reflectivity,
+                transmission=transmission,
+                **kwargs,
+            )._RotAroundLocal([0, 0, 1], [0, -width / 2, 0], (np.pi - angle) / 2)
+        )
+        # -45deg face
+        self.add_component(
+            SquareRefractive(
+                origin + np.array([0, -width / 2, 0]),
+                width,
+                height,
+                n1,
+                n2,
+                reflectivity=reflectivity,
+                transmission=transmission,
+                **kwargs,
+            )._RotAroundLocal([0, 0, 1], [0, width / 2, 0], -(np.pi - angle) / 2)
+        )
+        # sqrt(2)*L face
+        self.add_component(
+            SquareRefractive(
+                origin + np.array([-width * np.cos(angle / 2), 0, 0]),
+                width * np.sqrt(2),
+                height,
+                n2,
+                n1,
+                reflectivity=reflectivity,
+                transmission=transmission,
+                **kwargs,
+            )
+        )
+
+
 class MirrorPrism(ComponentGroup):
     def __init__(
         self,
         origin,
         width=1.0,
         height=1.0,
+        angle: float = np.pi / 2,
         reflectivity=1.0,
+        transmission=0.0,
         **kwargs,
     ):
         """L=width, H=height,(L,L,sqrt(2)L)x H, origin at right-angle corner"""
@@ -439,8 +500,9 @@ class MirrorPrism(ComponentGroup):
                 width,
                 height,
                 reflectivity=reflectivity,
+                transmission=transmission,
                 **kwargs,
-            )._RotAroundLocal([0, 0, 1], [0, -width / 2, 0], np.pi / 4)
+            )._RotAroundLocal([0, 0, 1], [0, -width / 2, 0], (np.pi - angle) / 2)
         )
         self.add_component(
             SquareMirror(
@@ -448,8 +510,9 @@ class MirrorPrism(ComponentGroup):
                 width,
                 height,
                 reflectivity=reflectivity,
+                transmission=transmission,
                 **kwargs,
-            )._RotAroundLocal([0, 0, 1], [0, width / 2, 0], -np.pi / 4)
+            )._RotAroundLocal([0, 0, 1], [0, width / 2, 0], -(np.pi - angle) / 2)
         )
 
 
@@ -729,6 +792,9 @@ class ASphericLens(ComponentGroup):
         **kwargs,
     ):
         super().__init__(origin, **kwargs)
+        self.f_asphere_1 = f_asphere_1
+        self.f_asphere_2 = f_asphere_2
+        #
         # create aspheric lens surface
         # surface_1
         asphere_surface_1 = ASphere(diameter / 2, f_asphere_1)

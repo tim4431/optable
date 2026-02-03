@@ -61,7 +61,7 @@ class Ray(Vector):
         self.direction = direction  # Direction vector
         self.intensity = float(intensity)  # Intensity of the ray
         self.wavelength = (
-            float(wavelength) if wavelength else None
+            float(wavelength) if wavelength else 0.0
         )  # Wavelength of the ray
         self.alive = alive  # Ray is alive means it has not been absorbed or terminated
         self._n = 1.0  # default vacuum

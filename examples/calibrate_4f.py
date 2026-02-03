@@ -19,9 +19,25 @@ if __name__ == "__main__":
     ax1 = [plt.subplot(gs1[i]) for i in range(3)]
 
 
-LENS = 6
+LENS = 2
+if LENS == 2:
+    # Thorlabs LA1353 - 75mm
+    EFLr = 20
+    CT = 1.01
+    Rr = 10.3
+    DL = 7.5
+    F1 = 23.1577
+    F2 = 19.8595
+    lens0 = PlanoConvexLens(
+        [F1, 0, 0],
+        EFL=EFLr,
+        CT=CT,
+        diameter=DL,
+        R=Rr,
+        name="L0",
+    )
 
-if LENS == 4:
+elif LENS == 4:
     EFL = 20.0
     CT = 1
     n = 1.5
@@ -85,25 +101,61 @@ elif LENS == 6:
         kappa=-1,
         name="L0",
     )
-
-N = 3
-D = 0.5
-R2wl = 780e-7  # in cm
-R2w0 = 61e-4  # in cm
-r0 = [
-    Ray([-10, i * D, 0], [1, 0, 0], wavelength=R2wl, w0=R2w0, id=int(i + N)).Propagate(
-        -10
+elif LENS == 7:
+    # Thorlabs ACT508-200-B, doublet
+    EFL = 20.0
+    CT1 = 0.85
+    CT2 = 0.50
+    R1 = 12.1
+    R2 = -11.87
+    R3 = -42.24
+    # F1 = 21.1798
+    F1 = 26.4975
+    F2 = 20.6390
+    lens0 = Doublet(
+        [F1, 0, 0],
+        CT1=CT1,
+        CT2=CT2,
+        R1=R1,
+        R2=R2,
+        R3=R3,
+        n12=Glass_NSK2(),
+        n23=Glass_NSF57(),
+        diameter=2.54 * 2,
+        name="L0",
     )
-    for i in np.arange(-N, N + 1)
-]
-# CRITERION = "M=-I"
-CRITERION = "flat_field"
-F1, F2 = OpticalTable.calibrate_symmetric_4f(
-    lens0, r0, F10=EFL, F20=EFL, criterion=CRITERION, debugaxs=ax0
-)
-print(F1, F2)
-OpticalTable.calibrate_symmetric_4f(
-    lens0, r0, F10=F1, F20=F2, debugaxs=ax0, optimize=False, display_M=True
-)
-print("FK")
-plt.show()
+
+if __name__ == "__main__":
+    N = 3
+    D = 0.6
+    R2wl = 780e-7  # in cm
+    R2w0 = 61e-4  # in cm
+    r0 = [
+        Ray(
+            [-10, i * D, 0], [1, 0, 0], wavelength=R2wl, w0=R2w0, id=int(i + N)
+        ).Propagate(-10)
+        for i in np.arange(-N, N + 1)
+    ]
+    # CRITERION = "M=-I"
+    # CRITERION = "flat_field"
+    CRITERION = "min_stdtY"
+    Ms, yList, tYList = OpticalTable.calibrate_symmetric_4f(
+        lens0, r0, F10=F1, F20=F2, debugaxs=ax0, optimize=False, display_M=True
+    )
+    idealyList = np.array([i * D for i in np.arange(-N, N + 1)])
+    yList = np.array(yList)
+    dYList = yList - idealyList
+    print(dYList)
+
+    plt.show()
+    # exit(0)
+    F1, F2 = OpticalTable.calibrate_symmetric_4f(
+        lens0, r0, F10=F1, F20=F2, criterion=CRITERION, debugaxs=ax0
+    )
+    print(F1, F2)
+    Ms, yList, tYList = OpticalTable.calibrate_symmetric_4f(
+        lens0, r0, F10=F1, F20=F2, debugaxs=ax0, optimize=False, display_M=True
+    )
+
+    print("FK")
+    plt.show()

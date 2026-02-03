@@ -240,8 +240,8 @@ class OpticalComponent(Vector):
                     normal[0],
                     normal[1],
                     color=color,
-                    scale=2,
-                    scale_units="xy",
+                    # scale=2,
+                    # scale_units="xy",
                 )
             if label and self.label:
                 if self.label_position is not None:
@@ -272,8 +272,8 @@ class OpticalComponent(Vector):
                     normal[1],
                     normal[2],
                     color=color,
-                    scale=2,
-                    scale_units="xy",
+                    # scale=2,
+                    # scale_units="xy",
                 )
             if detailed_render:
                 # add a 3D polygon

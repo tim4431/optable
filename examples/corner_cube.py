@@ -23,10 +23,11 @@ rays = [Ray([-10, y, z], [1, 0, 0])]
 L = 2
 
 cb = MirrorCube([0, 0, 0], D=L).RotY(np.pi)
+ps = Prism([2, 0.2, 0], 1, 1)
 
 mon0 = Monitor([-3, 0, 0], width=L, height=L, name="Monitor 0")
 
-components = [cb]
+components = [ps]
 
 table = OpticalTable()
 table.add_components(components)

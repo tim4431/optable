@@ -3,6 +3,7 @@ from .component_group import *
 from .monitor import *
 import matplotlib.pyplot as plt
 import numpy as np, time, csv
+from copy import deepcopy
 
 
 class OpticalTable:
@@ -232,7 +233,7 @@ class OpticalTable:
         assert len(set(raysids)) == Nrays, "Redundant ray ids in ABCD calculation."
         # sort rays by their ids
         rays_idx_sortbyids = np.argsort(raysids)
-        rays = [rays[i] for i in rays_idx_sortbyids]
+        rays = [deepcopy(rays[i]) for i in rays_idx_sortbyids]
         #
         # RAY TRACING
         _simulate(rays)
@@ -278,6 +279,7 @@ class OpticalTable:
         Ms[:, 0, 1] = B
         Ms[:, 1, 0] = C
         Ms[:, 1, 1] = D
+        #
 
         return Ms
 
@@ -307,8 +309,12 @@ class OpticalTable:
         from scipy.optimize import minimize
         from tqdm import tqdm
 
+        _cnt = 0
+
         # create a copy of lens
         def simulate(F1, F2):
+            nonlocal _cnt
+            _cnt += 1
             dr0 = np.array([F1, 0, 0]) - lens.origin
             l0 = lens.copy()._Translate(dr0)
             dr1 = np.array([F1 + 2 * F2, 0, 0]) - lens.origin
@@ -318,30 +324,40 @@ class OpticalTable:
             table = OpticalTable()
             table.add_components([l0, l1])
             table.add_monitors([Mon0, Mon1])
+            table.ray_tracing(rays)
+            yList = Mon1.get_yList()
+            tyList = Mon1.get_tYList()
             Ms = table.calculate_abcd_matrix(Mon0, Mon1, rays)
             #
+            if display_M:
+                for M in Ms:
+                    print(M)
+            #
             if not optimize:
+                # if True:
+                # if _cnt % 10 == 0:
+                # fig, ax = plt.subplots(figsize=(8, 6))
+                table.rays = []
                 table.ray_tracing(rays)
                 print(
                     "Rendering 4f system with F1={:.4f}, F2={:.4f} ...".format(F1, F2)
                 )
+                # table.render(ax=ax, type="Z")
                 table.render(ax=debugaxs, type="Z" if debugaxs is not None else None)
-            return Ms
+                # plt.show()
+            return Ms, yList, tyList
 
         def _cost_func_M_equal_mI(F1, F2):
-            Ms = simulate(F1, F2)
+            Ms, yList, tYList = simulate(F1, F2)
             cost = 0
             for M in Ms:
                 cost += np.linalg.norm(M + np.eye(2))
             cost /= len(Ms)
-            if display_M:
-                for M in Ms:
-                    print(M)
             pbar.set_description(f"Testing F1={F1:.4f}, F2={F2:.4f}, cost={cost:.6f}")
             return cost
 
         def _cost_func_flat_field(F1, F2):
-            Ms = simulate(F1, F2)
+            Ms, yList, tYList = simulate(F1, F2)
             cost = 0
             for M in Ms:
                 A = M[0, 0]
@@ -355,6 +371,16 @@ class OpticalTable:
             pbar.set_description(f"Testing F1={F1:.4f}, F2={F2:.4f}, cost={cost:.6f}")
             return cost
 
+        def _cost_func_min_stdtY(F1, F2):
+            Ms, yList, tYList = simulate(F1, F2)
+            # print(tYList)
+            cost = 0
+            for M in Ms:
+                cost += np.std(tYList)
+            cost /= len(Ms)
+            pbar.set_description(f"Testing F1={F1:.4f}, F2={F2:.4f}, cost={cost:.6f}")
+            return cost
+
         def cost_function():
             # if "pbar" in locals():
             pbar.update(1)
@@ -362,12 +388,14 @@ class OpticalTable:
                 return _cost_func_M_equal_mI
             elif criterion == "flat_field":
                 return _cost_func_flat_field
+            elif criterion == "min_stdtY":
+                return _cost_func_min_stdtY
             else:
                 raise ValueError(f"Unknown criterion: {criterion}")
 
         if not optimize:
-            simulate(F10, F20)
-            return F10, F20
+            Ms, yList, tYList = simulate(F10, F20)
+            return Ms, yList, tYList
         else:
             pbar = tqdm(total=500, desc="Optimizing 4f system")
             res = minimize(

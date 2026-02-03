@@ -21,6 +21,11 @@ class Material:
         return self.n_func(wavelength_m)
 
 
+class ConstMaterial(Material):
+    def __init__(self, name: str = "", n: float = 1.0):
+        super().__init__(name, n)
+
+
 def plot_material_refractive_index(
     material: Material, wl_min_m: float = 0.25e-6, wl_max_m: float = 2.5e-6
 ):
@@ -57,11 +62,11 @@ class RefractiveIndex:
             raise AttributeError(f"Material for {self.storage_name} not initialized.")
 
         def get_n(wavelength_m=None):
-            wl_m = (
-                wavelength_m
-                if wavelength_m is not None
-                else instance.wavelength * instance.unit
-            )
+            wl_m = 0.0
+            if wavelength_m is not None:
+                wl_m = wavelength_m
+            elif hasattr(instance, "wavelength") and instance.wavelength is not None:
+                wl_m = instance.wavelength * instance.unit
             return float(material.n(wl_m))
 
         return get_n
@@ -129,3 +134,34 @@ class Glass_UVFS(SellmeierMaterial):
         Bs = [0.6961663, 0.4079426, 0.8974794]
         Cs = [0.0684043**2, 0.1162414**2, 9.896161**2]
         super().__init__("UV Fused Silica", Bs, Cs)
+
+
+class Glass_SF5(SellmeierMaterial):
+    def __init__(self):
+        # SF5 Sellmeier coefficients
+        Bs = [1.52481889, 0.187085527, 1.42729015]
+        Cs = [0.011254756, 0.0588995392, 129.141675]
+
+
+class Glass_NSF11(SellmeierMaterial):
+    def __init__(self):
+        # N_SF11 Sellmeier coefficients
+        Bs = [1.73759695, 0.313747346, 1.89878101]
+        Cs = [0.013188707, 0.0623068142, 155.23629]
+        super().__init__("N_SF11", Bs, Cs)
+
+
+class Glass_NSK2(SellmeierMaterial):
+    def __init__(self):
+        # N_SK2 Sellmeier coefficients
+        Bs = [1.28189012, 0.257738258, 0.96818604]
+        Cs = [0.0072719164, 0.0242823527, 110.377773]
+        super().__init__("N_SK2", Bs, Cs)
+
+
+class Glass_NSF57(SellmeierMaterial):
+    def __init__(self):
+        # N_SF57 Sellmeier coefficients
+        Bs = [1.87543481, 0.37375749, 2.30001797]
+        Cs = [0.0141749518, 0.0640509927, 177.389795]
+        super().__init__("N_SF57", Bs, Cs)
