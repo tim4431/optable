@@ -7,6 +7,12 @@ dedicated to phys students working with freespace optics.
 [![GitHub stars](https://img.shields.io/github/stars/tim4431/optable?style=for-the-badge)](https://github.com/tim4431/optable/stargazers)
 [![Wiki](https://img.shields.io/badge/Wiki-blue?style=for-the-badge)](https://github.com/tim4431/optable/wiki)
 
+
+## Installation
+```python
+pip install -r requirements.txt
+```
+
 ## Example
 **1. Micro Lens Array**
 ```python

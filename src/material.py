@@ -136,11 +136,12 @@ class Glass_UVFS(SellmeierMaterial):
         super().__init__("UV Fused Silica", Bs, Cs)
 
 
-class Glass_SF5(SellmeierMaterial):
+class Glass_NSF5(SellmeierMaterial):
     def __init__(self):
         # SF5 Sellmeier coefficients
         Bs = [1.52481889, 0.187085527, 1.42729015]
         Cs = [0.011254756, 0.0588995392, 129.141675]
+        super().__init__("N_SF5", Bs, Cs)
 
 
 class Glass_NSF11(SellmeierMaterial):

@@ -19,7 +19,7 @@ if __name__ == "__main__":
     ax1 = [plt.subplot(gs1[i]) for i in range(3)]
 
 
-LENS = 2
+LENS = 8
 if LENS == 2:
     # Thorlabs LA1353 - 75mm
     EFLr = 20
@@ -124,6 +124,29 @@ elif LENS == 7:
         diameter=2.54 * 2,
         name="L0",
     )
+elif LENS == 8:
+    # Edmund Optics, #88-597, 75mm dia, 300mm EFL, doublet
+    EFL = 30.0
+    CT1 = 1.359
+    CT2 = 0.6
+    R1 = 18.405
+    R2 = -13.734
+    R3 = -39.933
+    F1 = 30.3964
+    F2 = 31.0822
+    lens0 = Doublet(
+        [F1, 0, 0],
+        CT1=CT1,
+        CT2=CT2,
+        R1=R1,
+        R2=R2,
+        R3=R3,
+        n12=Glass_NBK7(),
+        n23=Glass_NSF5(),
+        diameter=7.5,
+        name="L0",
+    )
+
 
 if __name__ == "__main__":
     N = 3
