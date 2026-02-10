@@ -27,8 +27,8 @@ Contents
    :maxdepth: 2
 
    installation
+   detailed_doc
 ..    getting_started
-..    detailed_doc
 ..    contribute
 
 .. note::
@@ -60,7 +60,7 @@ Indices and tables
 
 .. * :ref:`genindex`
 .. * :ref:`modindex`
-.. * :ref:`search`
+* :ref:`search`
 
 
 Credits
