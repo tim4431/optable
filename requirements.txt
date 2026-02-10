@@ -63,3 +63,9 @@ urllib3==2.3.0
 uv==0.9.18
 wheel==0.45.1
 xlrd==2.0.2
+pydata-sphinx-theme==0.16.1
+docutils>=0.21
+sphinx==9.1.0
+nbsphinx==0.9.8
+sphinx-copybutton==0.5.2 
+mock
