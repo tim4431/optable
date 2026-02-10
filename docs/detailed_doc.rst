@@ -1,4 +1,4 @@
-Detailed API documentation
+API documentation
 ==========================
 
 

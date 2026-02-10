@@ -8,13 +8,14 @@ Optable documentation
 *****************
 
 .. figure:: ./assets/logo.png
-    :width: 94px
+    :width: 140px
     :align: right
-    :height: 106px
+    :height: 140px
     :alt: Optable logo
     :figclass: align-right
 
 Optable is a package of routines written in Python,
+
 .. using object-oriented programming (OOP) to make modular, reusable and extendable
 .. collection of routines and data for performing useful calculations of
 .. single atom and two-atom properties, like level diagrams, interactions and
