@@ -1,5 +1,5 @@
 Optical Component
-================
+=================
 
 .. currentmodule:: src.optical_component
 

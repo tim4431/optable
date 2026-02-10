@@ -1,107 +1,57 @@
-.. Atom calculator documentation master file, created by
-   sphinx-quickstart on Fri Jul 29 12:19:10 2016.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-*****************
-Optable documentation
-*****************
+Optable Documentation
+=====================
 
 .. figure:: ./assets/logo.png
-    :width: 140px
-    :align: right
-    :height: 140px
-    :alt: Optable logo
-    :figclass: align-right
+   :width: 140px
+   :align: right
+   :height: 140px
+   :alt: Optable logo
+   :figclass: align-right
 
-Optable is a package of routines written in Python,
+Optable is a Python toolkit for free-space optics ray tracing and visualization.
+It is designed for fast experiment modeling with composable optical components,
+Gaussian beam support, and convenient plotting in 2D and 3D.
 
-.. using object-oriented programming (OOP) to make modular, reusable and extendable
-.. collection of routines and data for performing useful calculations of
-.. single atom and two-atom properties, like level diagrams, interactions and
-.. transition strengths for alkali and divalent atoms.
+What You Can Do
+===============
 
-Contents
-========
+- Build optical setups from mirrors, lenses, refractive surfaces, beam splitters, and grouped assemblies.
+- Trace ray bundles through the setup and inspect interactions at each component.
+- Work with Gaussian beam parameters through ``q``-parameter propagation.
+- Render full scenes and monitor outputs for alignment and optimization workflows.
+
+Quick Example
+=============
+
+.. code-block:: python
+
+   from src.optical_component import Mirror, Lens
+   from src.ray import Ray
+   from src.optical_table import OpticalTable
+
+   rays = [Ray([-10, 0, 0], [1, 0, 0], wavelength=780e-9, w0=10e-6)]
+   components = [
+       Mirror([0, 0, 0]).RotZ(0.2),
+       Lens([4, 0, 0], focal_length=5.0, radius=0.8),
+   ]
+
+   table = OpticalTable()
+   table.add_components(components)
+   table.ray_tracing(rays)
+
+Start Here
+==========
 
 .. toctree::
    :maxdepth: 2
 
    installation
+   examples/index
    detailed_doc
-..    getting_started
-..    contribute
 
-.. note::
-    Tim note
-    .. ARC 3.0 added support for divalent atoms and some of the functions
-    .. (`Wavefunction`, `AtomSurfaceVdW`,
-    .. `OpticalLattice1D`, `DynamicPolarizability`, and optical materials
-    .. properties).
-    .. See more at E. J. Robertson, N. Šibalić, R. M. Potvliege, M. P. A. Jones,
-    .. ARC 3.0: An expanded Python toolbox for atomic physics calculations,
-    .. *Computer Physics Communications* **261**, 107814 (2021) `https://doi.org/10.1016/j.cpc.2020.107814 <https://doi.org/10.1016/j.cpc.2020.107814>`_
-
-Package structure
-=================
-
-.. .. figure:: ./overview_of_modules3.png
-..     :width: 700px
-..     :align: center
-..     :height: 432px
-..     :alt: module overview image
-..     :figclass: align-center
-
-..     Overview of modules and interdependencies in the :obj:`arc` package. Click on image to enlarge.
-
-
-
-Indices and tables
-==================
-
-.. * :ref:`genindex`
-.. * :ref:`modindex`
-* :ref:`search`
-
-
-Credits
+Indices
 =======
 
-:Authors:
-    Tim
-
-.. :Cite as:
-..   The simplest way to obtain correct reference(s), given the number of contributions,
-..   is to **call - at the end of your Python script that uses ARC - following function**::
-
-..     from arc import *
-..     # use ARC
-..     print(getCitationForARC())
-
-..   The ``getCitationForARC()`` will print references that introduced methods
-..   you used into ARC library. Otherwise, you can do manual decision making
-..   based on the logic below:
-
-..   If you use **alkali** atoms:
-
-..   N. Šibalić, J. D. Pritchard, K. J. Weatherill, C. S. Adams,
-..   ARC: An open-source library for calculating properties of alkali Rydberg atoms,
-..   *Computer Physics Communications* **220**, 319 (2017)
-..   `https://doi.org/10.1016/j.cpc.2017.06.015 <https://doi.org/10.1016/j.cpc.2017.06.015>`_
-
-
-..   If you use **divalent** atoms or new features introduced in ARC 3.0:
-
-..   E. J. Robertson, N. Šibalić, R. M. Potvliege, M. P. A. Jones,
-..   ARC 3.0: An expanded Python toolbox for atomic physics calculations,
-..   *Computer Physics Communications* **261**, 107814 (2021) `https://doi.org/10.1016/j.cpc.2020.107814 <https://doi.org/10.1016/j.cpc.2020.107814>`_
-
-..   In addition, if you use ``arc_advanced`` extensions check
-..   `arc.advanced <./advanced.html>`_ .
-
-..   In addition, if you use AC Stark calculations ``ShirleyMethod`` or ``RWAStarkShift``
-..   please also cite D. H. Meyer, Z. A. Castillo, K. C. Cox, P. D. Kunz, J. Phys. B: At. Mol. Opt. Phys., 53, 034001 (2020) `https://doi.org/10.1088/1361-6455/ab6051 <https://doi.org/10.1088/1361-6455/ab6051>`_.
-
-.. :Licence: BSD 3-Clause
-
-.. :Version: 3.3.0 of 2023/04/23
+- :ref:`genindex`
+- :ref:`py-modindex`
+- :ref:`search`

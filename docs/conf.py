@@ -14,6 +14,7 @@
 
 import sys
 import os
+import runpy
 
 sys.path.insert(0, os.path.abspath(".."))
 # resolve problem with not having _tkinter on server used for documentation building
@@ -388,3 +389,13 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable/", None),  # type: ignore
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),  # type: ignore
 }  # type: ignore
+
+
+def _generate_examples_pages(_app):
+    """Generate docs/examples/*.rst from scripts in examples/."""
+    script = os.path.join(os.path.dirname(__file__), "generate_examples_docs.py")
+    runpy.run_path(script, run_name="__main__")
+
+
+def setup(app):
+    app.connect("builder-inited", _generate_examples_pages)
