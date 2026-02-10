@@ -88,6 +88,16 @@ def _find_output_images(example_file: Path, docs_dir: Path) -> list[Path]:
                     seen.add(candidate)
                     found.append(candidate)
 
+    # Generated fallback outputs from docs/build_examples_outputs.py.
+    generated_output_dir = docs_dir / "examples" / "output"
+    if generated_output_dir.exists():
+        for suffix in IMAGE_SUFFIXES:
+            for pattern in (f"{stem}{suffix}", f"{stem}_*{suffix}"):
+                for candidate in generated_output_dir.glob(pattern):
+                    if candidate not in seen and candidate.exists():
+                        seen.add(candidate)
+                        found.append(candidate)
+
     return sorted(found)
 
 

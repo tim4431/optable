@@ -397,5 +397,29 @@ def _generate_examples_pages(_app):
     runpy.run_path(script, run_name="__main__")
 
 
+def _should_build_example_outputs() -> bool:
+    """Decide whether to execute examples during docs build."""
+    flag = os.environ.get("OPTABLE_BUILD_EXAMPLES", "auto").strip().lower()
+    if flag in {"1", "true", "yes", "on"}:
+        return True
+    if flag in {"0", "false", "no", "off"}:
+        return False
+    # Default: build example outputs on Read the Docs.
+    return os.environ.get("READTHEDOCS", "").strip().lower() == "true"
+
+
+def _build_example_outputs(_app):
+    """Run example scripts and generate output images."""
+    if not _should_build_example_outputs():
+        return
+    script = os.path.join(os.path.dirname(__file__), "build_examples_outputs.py")
+    runpy.run_path(script, run_name="__main__")
+
+
+def _prepare_examples(_app):
+    _build_example_outputs(_app)
+    _generate_examples_pages(_app)
+
+
 def setup(app):
-    app.connect("builder-inited", _generate_examples_pages)
+    app.connect("builder-inited", _prepare_examples)
