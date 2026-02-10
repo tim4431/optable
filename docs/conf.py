@@ -14,7 +14,6 @@
 
 import sys
 import os
-from mock import Mock as MagicMock
 
 sys.path.insert(0, os.path.abspath(".."))
 # resolve problem with not having _tkinter on server used for documentation building
@@ -23,19 +22,6 @@ import matplotlib  # noqa: E402
 
 matplotlib.use("agg")
 
-
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-        return MagicMock()
-
-
-sys.modules["arc_c_extensions"] = Mock()
-
-filep = os.path.abspath("..") + "/arc/arc_c_extensions.py"
-f = open(filep, "w+")
-f.write("def NumerovWavefunction(*args):\n" + "    pass")
-f.close()
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -229,12 +215,12 @@ html_short_title = "Optable documentation"
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = "./logo_small.png"
+# html_logo = "./logo_small.png"
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-html_favicon = "./arc_logo.ico"
+# html_favicon = "./arc_logo.ico"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -334,7 +320,7 @@ latex_documents = [
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-latex_logo = "./logo_small.png"  # None
+# latex_logo = "./logo_small.png"  # None
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
