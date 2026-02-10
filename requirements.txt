@@ -51,13 +51,9 @@ shiboken6==6.10.1
 six==1.17.0
 sympy==1.13.1
 tomli==2.2.1
-torch==2.6.0
-torchvision==0.21.0
 tqdm==4.67.1
 typing-extensions==4.12.2
 tzdata==2025.1
-ultralytics==8.3.70
-ultralytics-thop==2.0.14
 urllib3==2.3.0
 uv==0.9.18
 wheel==0.45.1
