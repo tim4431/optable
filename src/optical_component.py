@@ -6,7 +6,16 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 class OpticalComponent(Vector):
+    """Base class for optical elements represented in a local coordinate frame."""
+
     def __init__(self, origin, **kwargs):
+        """Initialize a component at a lab-frame origin.
+
+        Args:
+            origin: Component origin in lab coordinates.
+            **kwargs: Optional display metadata such as ``name``, ``label``,
+                ``render_obj``, and ``render_comp_vec``.
+        """
         super().__init__(origin, **kwargs)
         self.transform_matrix = np.identity(3)
         self.surface = Plane()  # Default surface is a plane
@@ -32,14 +41,17 @@ class OpticalComponent(Vector):
     # normal in local fram is always x-axis
     @property
     def normal(self):
+        """Return the surface normal in lab coordinates."""
         return self.transform_matrix @ np.array([1, 0, 0])
 
     @property
     def tangent_Y(self):
+        """Return local +Y axis expressed in lab coordinates."""
         return self.transform_matrix @ np.array([0, 1, 0])
 
     @property
     def tangent_Z(self):
+        """Return local +Z axis expressed in lab coordinates."""
         return self.transform_matrix @ np.array([0, 0, 1])
 
     def get_bbox_local(self):
@@ -47,11 +59,17 @@ class OpticalComponent(Vector):
 
     @property
     def bbox(self):
+        """Return cached axis-aligned bounding box in lab coordinates."""
         if self._bbox == (None, None, None, None, None, None):
             self._bbox = tuple(self.get_bbox())
         return tuple(self._bbox)
 
     def get_bbox(self) -> tuple:
+        """Compute axis-aligned bounding box in lab frame.
+
+        Returns:
+            Tuple ``(xmin, xmax, ymin, ymax, zmin, zmax)`` in lab coordinates.
+        """
         bbox_local = self.get_bbox_local()
         corners_local = np.array(
             [
@@ -84,18 +102,14 @@ class OpticalComponent(Vector):
         return self
 
     def to_local_coordinates(self, ray: Ray) -> Ray:
-        """
-        Transforms the ray to the local coordinate system of the optical component.
-        """
+        """Transform a ray from lab frame into this component's local frame."""
         R = np.linalg.inv(self.transform_matrix)
         local_origin = np.dot(R, ray.origin - self.origin)
         local_direction = np.dot(R, ray.direction)
         return ray.copy(origin=local_origin, direction=local_direction)
 
     def to_lab_coordinates(self, ray: Ray) -> Ray:
-        """
-        Transforms the ray from local coordinates back to the lab coordinate system.
-        """
+        """Transform a ray from local frame back to the lab frame."""
         R = self.transform_matrix
         global_origin = np.dot(R, ray.origin) + self.origin
         global_direction = np.dot(R, ray.direction)
@@ -114,9 +128,14 @@ class OpticalComponent(Vector):
     def intersect_point_local(
         self, ray: Ray
     ) -> Union[Tuple[np.ndarray, float], Tuple[None, None]]:
-        """
-        (In local coordinates)
-        Calculates the intersection point between the ray and the optical component.
+        """Find first valid intersection with the component in local coordinates.
+
+        Args:
+            ray: Input ray already expressed in the component local frame.
+
+        Returns:
+            ``(P, t)`` where ``P`` is the local intersection point and ``t`` is
+            the ray parameter. Returns ``(None, None)`` if no valid hit exists.
         """
         EPS = 1e-9
         #
@@ -191,8 +210,9 @@ class OpticalComponent(Vector):
                 return None, None
 
     def interact_local(self, ray: Ray) -> List[Ray]:
-        """
-        Interacts with the optical component in the local coordinate system.
+        """Compute outgoing rays in local coordinates.
+
+        Subclasses must implement optical behavior using local-frame geometry.
         """
         raise NotImplementedError("Subclasses must implement interact_local method")
 
@@ -206,14 +226,7 @@ class OpticalComponent(Vector):
         return points_global
 
     def render(self, ax, type: str, **kwargs):
-        """
-        Render the optical component.
-
-        Parameters:
-            ax: Matplotlib 2D axis object for plotting.
-            type: str, the type of rendering (e.g., "Z" for 2D, "3D" for 3D).
-            kwargs: Additional arguments for customization (e.g., edge color).
-        """
+        """Render the component boundary in 2D (``"Z"``) or 3D (``"3D"``)."""
         if not self.render_obj:
             return
         # Get edge color and line width from kwargs
@@ -290,12 +303,16 @@ class OpticalComponent(Vector):
             raise ValueError(f"render: Invalid type: {type}")
 
     def interact(self, ray: Ray) -> Union[Tuple[float, List[Ray]], Tuple[None, None]]:
-        """
-        Interacts with the optical component.
+        """Apply component interaction in local frame and return lab-frame rays.
+
+        Args:
+            ray: Input ray in lab coordinates.
 
         Returns:
-            t: float, the distance between the ray origin and the intersection point.
-            rays: List[Ray], the new rays after interaction.
+            Tuple ``(t, rays)`` where ``t`` is the hit distance and ``rays``
+            contains the truncated incoming segment plus newly generated outgoing
+            rays in lab coordinates. Returns ``(None, None)`` when no interaction
+            occurs.
         """
         if not ray.alive:
             return None, None
@@ -319,6 +336,7 @@ class OpticalComponent(Vector):
                 return t, [truncted_ray] + lab_rays_after_interaction
 
     def patch_block(self, width, height):
+        """Create a ``Block`` patch sharing this component pose and aperture."""
         obj = Block(self.origin, hole=self.surface, width=width, height=height)
         obj.transform_matrix = self.transform_matrix
         return obj
@@ -326,8 +344,14 @@ class OpticalComponent(Vector):
     def gather_components(
         self, avoid_flatten_classname: List = [], ignore_classname: List = []
     ) -> List:
-        """
-        Gather all components in the optical component.
+        """Return a flattened metadata list for this component hierarchy.
+
+        Args:
+            avoid_flatten_classname: Class names whose children are not expanded.
+            ignore_classname: Class names excluded from output.
+
+        Returns:
+            A list of serializable dictionaries describing components.
         """
 
         def _repr_self_dict():
@@ -361,15 +385,20 @@ class OpticalComponent(Vector):
 
 
 class PointObj(OpticalComponent):
+    """Degenerate point-like marker component that transmits all rays."""
+
     def __init__(self, origin, **kwargs):
+        """Initialize a point object at ``origin``."""
         super().__init__(origin, **kwargs)
         self.surface = Point()
         self._edge_color = "orange"
 
     def interact_local(self, ray):
+        """Return the same ray to model perfect transmission."""
         return [ray]  # every ray is transmitted
 
     def render(self, ax, type: str, **kwargs):
+        """Render the point marker in 2D or 3D."""
         if type == "Z":
             ax.scatter(
                 self.origin[0], self.origin[1], color=self._edge_color, marker="+", s=20
@@ -385,10 +414,13 @@ class PointObj(OpticalComponent):
             )
 
     def get_bbox_local(self):
+        """Return local bounding box from point surface geometry."""
         return self.surface.get_bbox_local()
 
 
 class Block(OpticalComponent):
+    """Opaque rectangular blocker with an optional hole aperture."""
+
     def __init__(
         self,
         origin,
@@ -397,6 +429,14 @@ class Block(OpticalComponent):
         height: float = 1.0,
         **kwargs,
     ):
+        """Initialize a blocking rectangle.
+
+        Args:
+            origin: Component origin in lab coordinates.
+            hole: Optional surface removed from the rectangle aperture.
+            width: Rectangle width along local Y.
+            height: Rectangle height along local Z.
+        """
         super().__init__(origin, **kwargs)
         self.width = width
         self.height = height
@@ -408,16 +448,21 @@ class Block(OpticalComponent):
         self._edge_color = "black"
 
     def interact_local(self, ray):
+        """Absorb all incident rays."""
         return []  # every ray is absorbed
 
     def render(self, ax, type: str, **kwargs):
+        """Render block outline."""
         super().render(ax, type, color=self._edge_color, **kwargs)
 
     def get_bbox_local(self):
+        """Return local bounding box from rectangle geometry."""
         return self.surface.get_bbox_local()
 
 
 class BaseMirror(OpticalComponent):
+    """Base reflective surface with optional straight-through transmission."""
+
     def __init__(
         self,
         origin,
@@ -425,6 +470,13 @@ class BaseMirror(OpticalComponent):
         transmission: float = 0.0,
         **kwargs,
     ):
+        """Initialize mirror interaction coefficients.
+
+        Args:
+            origin: Component origin in lab coordinates.
+            reflectivity: Fraction of incoming intensity sent to reflected ray.
+            transmission: Fraction of incoming intensity sent to transmitted ray.
+        """
         super().__init__(origin, **kwargs)
         self.reflectivity = reflectivity
         self.transmission = transmission
@@ -432,6 +484,12 @@ class BaseMirror(OpticalComponent):
         self._edge_color = "green"
 
     def interact_local(self, ray):
+        """Compute reflected/transmitted rays in local coordinates.
+
+        The input ``ray`` must already be in this component local frame. A
+        reflected branch is generated when ``reflectivity > 0`` and a
+        straight-through branch when ``transmission > 0``.
+        """
         P, t = self.intersect_point_local(ray)
         normal = self.surface.normal(P)
         #
@@ -462,13 +520,17 @@ class BaseMirror(OpticalComponent):
         return rays
 
     def render(self, ax, type: str, **kwargs):
+        """Render mirror outline."""
         super().render(ax, type, color=self._edge_color, **kwargs)
 
     def get_bbox_local(self):
+        """Return local bounding box from the active surface."""
         return self.surface.get_bbox_local()
 
 
 class BaseRefraciveSurface(OpticalComponent):
+    """Base interface between two refractive media."""
+
     _n1 = RefractiveIndex("_n1")
     _n2 = RefractiveIndex("_n2")
 
@@ -481,8 +543,15 @@ class BaseRefraciveSurface(OpticalComponent):
         transmission: float = 1.0,
         **kwargs,
     ):
-        """
-        n1: x>0, n2: x<0
+        """Initialize refractive interface parameters.
+
+        Args:
+            origin: Component origin in lab coordinates.
+            n1: Refractive index for local ``x > 0`` side.
+            n2: Refractive index for local ``x < 0`` side.
+            reflectivity: Additional reflected branch coefficient.
+            transmission: Transmitted branch coefficient.
+            **kwargs: Optional ``surface`` override and rendering options.
         """
         super().__init__(origin, **kwargs)
 
@@ -497,6 +566,13 @@ class BaseRefraciveSurface(OpticalComponent):
         self.roc = self.surface.roc if hasattr(self.surface, "roc") else np.inf
 
     def interact_local(self, ray):
+        """Apply Snell refraction and optional reflection in local frame.
+
+        The method determines incident side from the local surface normal,
+        computes transmitted direction using Snell's law, handles total internal
+        reflection, and updates Gaussian beam ``q`` with ABCD matrices when
+        available.
+        """
         P, t = self.intersect_point_local(ray)
         normal = self.surface.normal(P)
         n1 = self._n1(ray.wavelength * ray.unit)
@@ -592,13 +668,17 @@ class BaseRefraciveSurface(OpticalComponent):
         return rays
 
     def render(self, ax, type: str, **kwargs):
+        """Render refractive surface outline."""
         super().render(ax, type, color=self._edge_color, **kwargs)
 
     def get_bbox_local(self):
+        """Return local bounding box from the active surface."""
         return self.surface.get_bbox_local()
 
 
 class Mirror(BaseMirror):
+    """Circular mirror."""
+
     def __init__(
         self,
         origin,
@@ -607,6 +687,7 @@ class Mirror(BaseMirror):
         transmission: float = 0.0,
         **kwargs,
     ):
+        """Initialize a circular mirror."""
         super().__init__(
             origin, reflectivity=reflectivity, transmission=transmission, **kwargs
         )
@@ -615,6 +696,8 @@ class Mirror(BaseMirror):
 
 
 class SquareMirror(BaseMirror):
+    """Rectangular mirror."""
+
     def __init__(
         self,
         origin,
@@ -624,6 +707,7 @@ class SquareMirror(BaseMirror):
         transmission: float = 0.0,
         **kwargs,
     ):
+        """Initialize a rectangular mirror."""
         super().__init__(
             origin, reflectivity=reflectivity, transmission=transmission, **kwargs
         )
@@ -633,6 +717,8 @@ class SquareMirror(BaseMirror):
 
 
 class SquareRefractive(BaseRefraciveSurface):
+    """Rectangular refractive interface."""
+
     def __init__(
         self,
         origin,
@@ -644,6 +730,7 @@ class SquareRefractive(BaseRefraciveSurface):
         transmission: float = 1.0,
         **kwargs,
     ):
+        """Initialize a rectangular refractive surface."""
         super().__init__(
             origin,
             n1=n1,
@@ -658,6 +745,8 @@ class SquareRefractive(BaseRefraciveSurface):
 
 
 class CircleRefractive(BaseRefraciveSurface):
+    """Circular refractive interface."""
+
     def __init__(
         self,
         origin,
@@ -668,6 +757,7 @@ class CircleRefractive(BaseRefraciveSurface):
         transmission: float = 1.0,
         **kwargs,
     ):
+        """Initialize a circular refractive surface."""
         super().__init__(
             origin,
             n1=n1,
@@ -681,6 +771,8 @@ class CircleRefractive(BaseRefraciveSurface):
 
 
 class SphereRefractive(BaseRefraciveSurface):
+    """Spherical-cap refractive interface."""
+
     def __init__(
         self,
         origin,
@@ -692,6 +784,7 @@ class SphereRefractive(BaseRefraciveSurface):
         transmission: float = 1.0,
         **kwargs,
     ):
+        """Initialize a spherical refractive surface."""
         super().__init__(
             origin,
             n1=n1,
@@ -707,7 +800,17 @@ class SphereRefractive(BaseRefraciveSurface):
 
 
 class BeamSplitter(SquareMirror):
+    """Rectangular beamsplitter modeled as a partially reflective mirror."""
+
     def __init__(self, origin, width=1.0, height=1.0, eta: float = 0.5, **kwargs):
+        """Initialize beamsplitter from splitting ratio ``eta``.
+
+        Args:
+            origin: Component origin in lab coordinates.
+            width: Aperture width.
+            height: Aperture height.
+            eta: Power ratio sent to reflected branch.
+        """
         super().__init__(
             origin,
             width=width,
@@ -720,9 +823,7 @@ class BeamSplitter(SquareMirror):
         self._edge_color = edgecolor
 
     def render(self, ax, type, **kwargs):
-        """
-        Render the beam splitter with lightblue, and a deep blue as frame.
-        """
+        """Render the beamsplitter boundary and optional filled face in 2D."""
         super().render(ax, type, **kwargs)
         facecolor = kwargs.get("facecolor", Color.SCIENCE_BLUE_LIGHT)
         linewidth = kwargs.get("linewidth", 2)
@@ -750,6 +851,8 @@ class BeamSplitter(SquareMirror):
 
 
 class Lens(OpticalComponent):
+    """Thin lens with circular aperture."""
+
     def __init__(
         self,
         origin,
@@ -758,6 +861,14 @@ class Lens(OpticalComponent):
         transmission: float = 1.0,
         **kwargs,
     ):
+        """Initialize a thin lens element.
+
+        Args:
+            origin: Component origin in lab coordinates.
+            focal_length: Thin-lens focal length in model units.
+            radius: Circular aperture radius.
+            transmission: Intensity scaling applied to transmitted ray.
+        """
         super().__init__(origin, **kwargs)
         self.focal_length = focal_length
         self.transmission = transmission
@@ -768,6 +879,7 @@ class Lens(OpticalComponent):
         self._edge_color = "purple"
 
     def interact_local(self, ray):
+        """Apply thin-lens deflection and Gaussian ``q`` propagation locally."""
         normal = np.array([1, 0, 0])  # normal in local frame is always x-axis
         P, t = self.intersect_point_local(ray)
         if ray.qo is None:
@@ -787,13 +899,17 @@ class Lens(OpticalComponent):
         return rays
 
     def render(self, ax, type: str, **kwargs):
+        """Render lens outline."""
         return super().render(ax, type, color=self._edge_color, **kwargs)
 
     def get_bbox_local(self):
+        """Return local bounding box from circular aperture geometry."""
         return self.surface.get_bbox_local()
 
 
 class CylMirror(BaseMirror):
+    """Cylindrical mirror segment."""
+
     def __init__(
         self,
         origin,
@@ -802,6 +918,7 @@ class CylMirror(BaseMirror):
         theta_range=(-np.pi, np.pi),
         **kwargs,
     ):
+        """Initialize a cylindrical mirror."""
         super().__init__(origin, **kwargs)
         self.radius = radius
         self.height = height

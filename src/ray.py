@@ -6,42 +6,53 @@ _RAY_NONE_LENGTH = 100
 
 
 class GaussianBeam:
+    """Utility formulas for Gaussian beam ``q``-parameter optics."""
+
     @staticmethod
     def q_at_waist(w0, wl, n=1):
+        """Return complex ``q`` at beam waist from waist radius and wavelength."""
         return (1j * n * np.pi * w0**2) / wl
 
     @staticmethod
     def q_at_z(qo, z):
+        """Propagate ``q`` by free-space distance ``z``."""
         return qo + z
 
     @staticmethod
     def distance_to_waist(q):
+        """Return signed distance from current plane to waist plane."""
         z = np.real(q)
         return z
 
     @staticmethod
     def waist(q, wl, n=1):
+        """Return waist radius implied by complex ``q``."""
         w0 = np.sqrt((wl * np.imag(q)) / (n * np.pi))
         return float(w0)
 
     @staticmethod
     def rayleigh_range(q):
+        """Return Rayleigh range from complex ``q``."""
         zr = np.imag(q)
         return float(zr)
 
     @staticmethod
     def radius_of_curvature(q):
+        """Return wavefront radius of curvature from complex ``q``."""
         R = 1 / np.real(1 / q)
         return float(R)
 
     @staticmethod
     def spot_size(qo, z, wl, n=1):
+        """Return beam spot size after propagation distance ``z``."""
         q = qo + z
         w = np.sqrt(-wl / (n * np.pi * np.imag(1 / q)))
         return w
 
 
 class Ray(Vector):
+    """Geometric ray with optional Gaussian beam state."""
+
     _n = RefractiveIndex("_n")  # refractive index
 
     def __init__(
@@ -56,6 +67,18 @@ class Ray(Vector):
         w0=None,  # if specified, qo will be calculated from w0
         **kwargs,
     ):
+        """Initialize a ray.
+
+        Args:
+            origin: Ray origin in lab coordinates.
+            direction: Propagation direction (normalized internally).
+            intensity: Relative ray intensity.
+            wavelength: Wavelength in model units.
+            length: Optional finite rendering/segment length.
+            alive: If ``False``, ray is ignored in interaction steps.
+            qo: Optional Gaussian beam complex ``q`` at origin.
+            w0: Optional beam waist radius used to derive ``qo``.
+        """
         super().__init__(origin, **kwargs)
         self.length = float(length) if length else None  # Length of the ray
         self.direction = direction  # Direction vector
@@ -81,23 +104,28 @@ class Ray(Vector):
 
     @property
     def direction(self):
+        """Unit propagation direction vector."""
         return self._direction
 
     @direction.setter
     def direction(self, direction):
+        """Set direction from an arbitrary vector and normalize."""
         self._direction = self._normalize_vector(direction)
         # print(self._direction)
 
     @property
     def n(self):
+        """Return refractive index at current wavelength."""
         return self._n()
 
     @property
     def transform_matrix(self):
+        """Return rotation matrix mapping local ray frame to lab frame."""
         return self._vector_to_R(self.direction)
 
     @property
     def tangent_1(self):
+        """Return first unit tangent vector orthogonal to propagation."""
         n = self.direction
         if n[0] == 0 and n[1] == 0:
             return np.array([1, 0, 0])
@@ -106,12 +134,15 @@ class Ray(Vector):
 
     @property
     def tangent_2(self):
+        """Return second unit tangent vector orthogonal to propagation."""
         return self._normalize_vector(np.cross(self.direction, self.tangent_1))
 
     def pathlength(self, t: float = 0) -> float:
+        """Return accumulated optical path length including offset ``t``."""
         return float(self._pathlength + t * self.n)
 
     def phase(self, t: float = 0) -> float:
+        """Return optical phase modulo ``2*pi`` at offset ``t``."""
         return np.mod((2 * np.pi / self.wavelength) * self.pathlength(t), 2 * np.pi)
 
     def _RotAroundLocal(self, axis, localpoint, theta):
@@ -123,27 +154,35 @@ class Ray(Vector):
 
     # >>> Gaussian Beam Functions
     def q_at_waist(self, w0):
+        """Return Gaussian ``q`` at waist radius ``w0`` for this ray."""
         return GaussianBeam.q_at_waist(w0, self.wavelength, self.n)
 
     def q_at_z(self, z):
+        """Return Gaussian ``q`` after propagation distance ``z``."""
         return GaussianBeam.q_at_z(self.qo, z)
 
     def distance_to_waist(self, q):
+        """Return distance from given ``q`` plane to waist plane."""
         return GaussianBeam.distance_to_waist(q)
 
     def waist(self, q):
+        """Return waist radius implied by ``q`` for this wavelength/index."""
         return GaussianBeam.waist(q, self.wavelength, self.n)
 
     def rayleigh_range(self, q):
+        """Return Rayleigh range from ``q``."""
         return GaussianBeam.rayleigh_range(q)
 
     def radius_of_curvature(self, q):
+        """Return wavefront curvature radius from ``q``."""
         return GaussianBeam.radius_of_curvature(q)
 
     def spot_size(self, z):
+        """Return spot size at propagation distance ``z``."""
         return GaussianBeam.spot_size(self.qo, z, self.wavelength, self.n)
 
     def Propagate(self, z):
+        """Return a copied ray with ``qo`` propagated by distance ``z``."""
         return self.copy(qo=self.q_at_z(z))
 
     def _render_sampling(self, length, num_points=10):
@@ -164,15 +203,9 @@ class Ray(Vector):
     # <<< Gaussian Beam Functions
 
     def render(self, ax, type: str, **kwargs):
-        """
-        Render the ray in 2D.
-        Each ray is represented by a line, and an arrow in the middle indicates direction.
-        The alpha value reflects the intensity of the ray.
+        """Render the ray in 2D (``"Z"``) or 3D (``"3D"``).
 
-        Parameters:
-            ax: Matplotlib 2D axis object for plotting.
-            type: str, the type of rendering (e.g., "Z" for 2D, "3D" for 3D).
-            kwargs: Additional arguments for customization (e.g., edge color).
+        Supports optional directional arrows and Gaussian beam envelopes.
         """
 
         # Set color and transparency based on ray properties

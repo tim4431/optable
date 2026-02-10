@@ -6,6 +6,7 @@ API documentation
    :maxdepth: 2
 
    optical_component
+   ray
 ..    math_and_io_primitives.rst
 ..    alkali_atom_functions
 ..    divalent_atom_functions
