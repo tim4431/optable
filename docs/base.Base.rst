@@ -1,10 +1,14 @@
-ComponentGroup
-==============
+Base
+====
 
-.. currentmodule:: optable.component_group
+.. currentmodule:: optable.base
 
-.. autoclass:: ComponentGroup
+Base
+----
+
+.. autoclass:: Base
    :member-order: bysource
    :show-inheritance:
    :no-inherited-members:
    :special-members: __init__
+

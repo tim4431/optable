@@ -73,7 +73,14 @@ intersphinx_mapping = {
     ),
 }
 
-autodoc_default_flags = ["members", "inherited-members", "undoc-members"]
+autodoc_default_options = {
+    "members": True,
+    "inherited-members": True,
+    "undoc-members": True,
+    "member-order": "bysource",
+    "show-inheritance": True,
+    "no-inherited-members": True,
+}
 autosummary_imported_members = True
 
 # Add any paths that contain templates here, relative to this directory.
