@@ -34,6 +34,8 @@ class OpticalComponent(Vector):
         self.label_position = kwargs.get(
             "label_position", [1, 0, 0]
         )  # [dx,dy] or [dx,dy,dz]
+        self._interact_count = {}
+        self.max_interact_count = kwargs.get("max_interact_count", None)
 
     def __repr__(self):
         return f"OpticalComponent(origin={self.origin}, transform_matrix=\n{self.transform_matrix})"
@@ -101,14 +103,20 @@ class OpticalComponent(Vector):
         self.origin = self.origin + np.dot(R, -localpoint) + localpoint
         return self
 
-    def to_local_coordinates(self, ray: Ray) -> Ray:
+    def ray_to_local_coordinates(self, ray: Ray) -> Ray:
         """Transform a ray from lab frame into this component's local frame."""
         R = np.linalg.inv(self.transform_matrix)
         local_origin = np.dot(R, ray.origin - self.origin)
         local_direction = np.dot(R, ray.direction)
         return ray.copy(origin=local_origin, direction=local_direction)
 
-    def to_lab_coordinates(self, ray: Ray) -> Ray:
+    def point_to_lab_coordinates(self, point_local: np.ndarray) -> np.ndarray:
+        """Transform a point from local frame back to the lab frame."""
+        R = self.transform_matrix
+        global_point = np.dot(R, point_local) + self.origin
+        return global_point
+
+    def ray_to_lab_coordinates(self, ray: Ray) -> Ray:
         """Transform a ray from local frame back to the lab frame."""
         R = self.transform_matrix
         global_origin = np.dot(R, ray.origin) + self.origin
@@ -124,6 +132,21 @@ class OpticalComponent(Vector):
                 t = scipy.optimize.brentq(f, t_start, t_end)
                 sols.append(t)
         return np.array(sols)
+
+    def get_interact_count(self, ray_id):
+        count = self._interact_count.get(ray_id, 0)
+        return count
+
+    def should_interact(self, ray_id):
+        if self.max_interact_count is None:
+            return True
+        else:
+            count = self._interact_count.get(ray_id, 0)
+            return count < self.max_interact_count
+
+    def increase_interact_count(self, ray_id):
+        count = self._interact_count.get(ray_id, 0)
+        self._interact_count[ray_id] = count + 1
 
     def intersect_point_local(
         self, ray: Ray
@@ -317,23 +340,33 @@ class OpticalComponent(Vector):
         if not ray.alive:
             return None, None
         else:
-            local_ray = self.to_local_coordinates(ray)
+            local_ray = self.ray_to_local_coordinates(ray)
             P, t = self.intersect_point_local(local_ray)
             #
 
             if P is None:
                 return None, None
             else:
-                truncted_ray = ray.copy(length=t, alive=False)
+                if self.should_interact(ray._id):
+                    self.increase_interact_count(ray._id)
+                else:
+                    return None, None
+                #
+                truncated_ray = ray.copy(length=t, alive=False)
                 # new rays after interaction
                 local_rays_after_interaction = self.interact_local(
                     local_ray
                 )  # List[Ray]
                 lab_rays_after_interaction = [
-                    self.to_lab_coordinates(local_ray)
+                    self.ray_to_lab_coordinates(local_ray)
                     for local_ray in local_rays_after_interaction
                 ]
-                return t, [truncted_ray] + lab_rays_after_interaction
+                # global_point = self.point_to_lab_coordinates(P)
+
+                # print(
+                #     f"Component {self.name} interacted with ray {ray._id}, intensity {ray.intensity} at global point {global_point} and distance {t}, generated {len(lab_rays_after_interaction)} rays"
+                # )
+                return t, [truncated_ray] + lab_rays_after_interaction
 
     def patch_block(self, width, height):
         """Create a ``Block`` patch sharing this component pose and aperture."""

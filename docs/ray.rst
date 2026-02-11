@@ -16,11 +16,12 @@ Ray
 ---
 
 .. autoclass:: Ray
-   :members: direction, n, transform_matrix, tangent_1, tangent_2, pathlength, phase, q_at_waist, q_at_z, distance_to_waist, waist, rayleigh_range, radius_of_curvature, spot_size, Propagate, render
+   :members:
    :member-order: bysource
    :show-inheritance:
    :no-inherited-members:
    :special-members: __init__
+..    :members: direction, n, transform_matrix, tangent_1, tangent_2, pathlength, phase, q_at_waist, q_at_z, distance_to_waist, waist, rayleigh_range, radius_of_curvature, spot_size, Propagate, render
 
 Functions
 ---------

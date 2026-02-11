@@ -431,8 +431,10 @@ class Prism(ComponentGroup):
         n1=1.0,
         n2=1.5,
         angle: float = np.pi / 2,
-        reflectivity=0,
-        transmission=1,
+        reflectivity_leg=0,
+        transmission_leg=1,
+        reflectivity_hyp=0,
+        transmission_hyp=1,
         **kwargs,
     ):
         """L=width, H=height,(L,L,sqrt(2)L)x H, origin at right-angle corner
@@ -440,6 +442,8 @@ class Prism(ComponentGroup):
         |/
         """
         super().__init__(origin, **kwargs)
+        self.name = kwargs.get("name", self.__class__.__name__)
+
         # +45deg face
         self.add_component(
             SquareRefractive(
@@ -448,8 +452,9 @@ class Prism(ComponentGroup):
                 height,
                 n1,
                 n2,
-                reflectivity=reflectivity,
-                transmission=transmission,
+                reflectivity=reflectivity_leg,
+                transmission=transmission_leg,
+                name=f"{self.name} leg 1",
                 **kwargs,
             )._RotAroundLocal([0, 0, 1], [0, -width / 2, 0], (np.pi - angle) / 2)
         )
@@ -461,8 +466,9 @@ class Prism(ComponentGroup):
                 height,
                 n1,
                 n2,
-                reflectivity=reflectivity,
-                transmission=transmission,
+                reflectivity=reflectivity_leg,
+                transmission=transmission_leg,
+                name=f"{self.name} leg 2",
                 **kwargs,
             )._RotAroundLocal([0, 0, 1], [0, width / 2, 0], -(np.pi - angle) / 2)
         )
@@ -470,14 +476,95 @@ class Prism(ComponentGroup):
         self.add_component(
             SquareRefractive(
                 origin + np.array([-width * np.cos(angle / 2), 0, 0]),
-                width * np.sqrt(2),
+                width * 2 * np.sin(angle / 2),
                 height,
                 n2,
                 n1,
-                reflectivity=reflectivity,
-                transmission=transmission,
+                reflectivity=reflectivity_hyp,
+                transmission=transmission_hyp,
+                name=f"{self.name} hypotenuse",
                 **kwargs,
             )
+        )
+
+
+class TriangularPrism(ComponentGroup):
+    def __init__(
+        self,
+        origin,
+        width=1.0,
+        height=1.0,
+        n1=1.0,
+        n2=1.5,
+        alpha=np.pi / 4,
+        beta=np.pi / 2,
+        reflectivity_1=0,
+        reflectivity_2=0,
+        reflectivity_3=0,
+        transmission_1=1,
+        transmission_2=1,
+        transmission_3=1,
+        max_interact_count_2=5,
+        max_interact_count_3=5,
+        **kwargs,
+    ):
+        """Triangular prism with main face (1) perp to x axis, with length=width and height=height, origin at the bottom corner of the main face
+        The top face (2) is rotated by alpha from the main face, and the bottom face (3) is rotated by beta from the main face.
+           /|
+        2 / | 1
+         /  |
+        -----
+          3
+        """
+        super().__init__(origin, **kwargs)
+        self.name = kwargs.get("name", self.__class__.__name__)
+
+        # 1 face
+        self.add_component(
+            SquareRefractive(
+                origin=origin + np.array([0, width / 2, 0]),
+                width=width,
+                height=height,
+                n1=n1,
+                n2=n2,
+                reflectivity=reflectivity_1,
+                transmission=transmission_1,
+                **kwargs,
+            )
+        )
+        # 2 face
+        l2 = (
+            width * np.sin(beta) / np.sin(np.pi - alpha - beta)
+        )  # length of the l2 faces
+        self.add_component(
+            SquareRefractive(
+                origin=origin + np.array([0, width - l2 / 2, 0]),
+                width=l2,
+                height=height,
+                n1=n2,
+                n2=n1,
+                reflectivity=reflectivity_2,
+                transmission=transmission_2,
+                max_interact_count=max_interact_count_2,
+                **kwargs,
+            )._RotAroundLocal([0, 0, 1], [0, l2 / 2, 0], -alpha)
+        )
+        # 3 face
+        l3 = (
+            width * np.sin(alpha) / np.sin(np.pi - alpha - beta)
+        )  # length of the l3 faces
+        self.add_component(
+            SquareRefractive(
+                origin=origin + np.array([0, l3 / 2, 0]),
+                width=l3,
+                height=height,
+                n1=n2,
+                n2=n1,
+                reflectivity=reflectivity_3,
+                transmission=transmission_3,
+                max_interact_count=max_interact_count_3,
+                **kwargs,
+            )._RotAroundLocal([0, 0, 1], [0, -l3 / 2, 0], beta)
         )
 
 

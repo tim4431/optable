@@ -182,7 +182,7 @@ class Monitor(OpticalComponent):
     def record(self, rays: List[Ray]):
         Pts = []
         for r in rays:
-            local_ray = self.to_local_coordinates(r)
+            local_ray = self.ray_to_local_coordinates(r)
             P, t = self.intersect_point_local(local_ray)
             if P is not None:
                 Pts.append(

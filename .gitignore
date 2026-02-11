@@ -162,3 +162,5 @@ cython_debug/
 #.idea/
 
 demo/
+docs/examples/output/
+docs/examples/generated/

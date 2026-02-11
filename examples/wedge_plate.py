@@ -84,10 +84,10 @@ if __name__ == "__main__":
         ax0.grid(False)
         ax0.set_axis_off()
     #
-    table.export_rays_csv("1dbeams_rays_traced.csv")
-    table.export_components_csv(
-        "1dbeams_components.csv",
-        avoid_flatten_classname=[],
-        ignore_classname=["Block"],
-    )
+    # table.export_rays_csv("1dbeams_rays_traced.csv")
+    # table.export_components_csv(
+    #     "1dbeams_components.csv",
+    #     avoid_flatten_classname=[],
+    #     ignore_classname=["Block"],
+    # )
     plt.show()
