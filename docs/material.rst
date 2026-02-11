@@ -10,11 +10,12 @@ Material
 --------
 
 .. autoclass:: Material
-   :members: n
+   :members:
    :member-order: bysource
    :show-inheritance:
    :no-inherited-members:
    :special-members: __init__
+
 
 ConstMaterial
 -------------
@@ -29,6 +30,7 @@ RefractiveIndex
 ---------------
 
 .. autoclass:: RefractiveIndex
+   :members:
    :member-order: bysource
    :show-inheritance:
    :no-inherited-members:
@@ -55,6 +57,17 @@ SellmeierMaterial
 
 Glass_NBK7
 ----------
+
+.. autosummary::  optable.material
+    :toctree: generated/
+    :recursive:
+
+    Glass_NBK7
+    Glass_UVFS
+    Glass_NSF5
+    Glass_NSF11
+    Glass_NSK2
+    Glass_NSF57
 
 .. autoclass:: Glass_NBK7
    :member-order: bysource
