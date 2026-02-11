@@ -75,9 +75,8 @@ intersphinx_mapping = {
 
 autodoc_default_options = {
     "members": True,
-    "inherited-members": True,
-    "undoc-members": True,
     "member-order": "bysource",
+    "undoc-members": True,
     "show-inheritance": True,
     "no-inherited-members": True,
 }

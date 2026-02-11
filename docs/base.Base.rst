@@ -1,10 +1,7 @@
-Base
+Base Classes
 ====
 
 .. currentmodule:: optable.base
-
-Base
-----
 
 .. autoclass:: Base
    :member-order: bysource

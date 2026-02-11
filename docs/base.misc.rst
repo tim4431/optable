@@ -1,5 +1,6 @@
 Misc
 =========
+.. currentmodule:: optable.base
 
 Path
 ----

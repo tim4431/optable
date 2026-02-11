@@ -7,7 +7,6 @@ API documentation
 
    base
    ray
-   ray1
    surfaces
    material
    optical_component

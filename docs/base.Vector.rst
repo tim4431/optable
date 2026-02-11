@@ -1,9 +1,9 @@
-Vector
+Vector Classes
 ======
 
 .. currentmodule:: optable.base
 
-This include the rotational and translation.
+This class implements a vector, with the rotational and translation.
 
 .. autoclass:: Vector
    :member-order: bysource

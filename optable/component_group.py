@@ -508,13 +508,17 @@ class TriangularPrism(ComponentGroup):
         max_interact_count_3=5,
         **kwargs,
     ):
-        """Triangular prism with main face (1) perp to x axis, with length=width and height=height, origin at the bottom corner of the main face
+        """
+        Triangular prism with main face (1) perp to x axis, with length=width and height=height, origin at the bottom corner of the main face.
         The top face (2) is rotated by alpha from the main face, and the bottom face (3) is rotated by beta from the main face.
-           /|
-        2 / | 1
-         /  |
-        -----
-          3
+
+        ::
+
+               /|
+            2 / | 1
+             /  |
+            -----
+              3
         """
         super().__init__(origin, **kwargs)
         self.name = kwargs.get("name", self.__class__.__name__)
