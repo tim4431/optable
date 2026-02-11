@@ -10,3 +10,4 @@ Optical Component
    optical_component.Lens
    optical_component.Mirror
    optical_component.Refractive
+   optical_component.Misc

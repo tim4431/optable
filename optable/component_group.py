@@ -437,9 +437,43 @@ class Prism(ComponentGroup):
         transmission_hyp=1,
         **kwargs,
     ):
-        """L=width, H=height,(L,L,sqrt(2)L)x H, origin at right-angle corner
-        |\s
-        |/
+        """Isoceles prism with two equal legs of length `width` and apex `angle`.
+
+        Cross-section (view along z)::
+
+                   |\\
+                   | \\  leg 1
+                   |  \\
+        hypotenuse |   \\
+                   |   /
+                   |  /
+                   | /   leg 2
+                   |/
+
+        Origin is at the apex (right-angle corner).
+
+        Parameters
+        ----------
+        origin : array-like
+            Position of the apex corner.
+        width : float
+            Length of each leg.
+        height : float
+            Extent along the z-axis.
+        n1 : float
+            Refractive index outside the prism.
+        n2 : float
+            Refractive index of the prism material.
+        angle : float
+            Full apex angle in radians (default π/2).
+        reflectivity_leg : float
+            Reflectivity of the two leg faces.
+        transmission_leg : float
+            Transmission of the two leg faces.
+        reflectivity_hyp : float
+            Reflectivity of the hypotenuse face.
+        transmission_hyp : float
+            Transmission of the hypotenuse face.
         """
         super().__init__(origin, **kwargs)
         self.name = kwargs.get("name", self.__class__.__name__)
@@ -508,17 +542,48 @@ class TriangularPrism(ComponentGroup):
         max_interact_count_3=5,
         **kwargs,
     ):
-        """
-        Triangular prism with main face (1) perp to x axis, with length=width and height=height, origin at the bottom corner of the main face.
-        The top face (2) is rotated by alpha from the main face, and the bottom face (3) is rotated by beta from the main face.
+        """Triangular prism defined by three faces.
 
-        ::
+        Face 1 (entrance) is perpendicular to the x-axis, has length ``width``
+        and extent ``height`` along z.  The origin sits at the midpoint of the
+        bottom edge of face 1.
 
-               /|
-            2 / | 1
-             /  |
-            -----
-              3
+        Face 2 departs from the top edge of face 1, tilted by angle ``alpha``
+        (measured from face 1 towards the interior).
+
+        Face 3 departs from the bottom edge of face 1, tilted by angle ``beta``
+        (measured from face 1 towards the interior).
+
+        Cross-section (view along z, beam propagates in +x)::
+
+             ╱│
+          2 / │ 1  (width)
+           /  │
+          ╱───┘
+            3
+
+        Parameters
+        ----------
+        origin : array-like
+            Position of the bottom-centre of face 1.
+        width : float
+            Length of face 1 (the entrance face).
+        height : float
+            Extent of every face along the z-axis.
+        n1 : float
+            Refractive index outside the prism.
+        n2 : float
+            Refractive index of the prism material.
+        alpha : float
+            Angle (rad) between face 1 and face 2 (default π/4).
+        beta : float
+            Angle (rad) between face 1 and face 3 (default π/2).
+        reflectivity_{1,2,3} : float
+            Reflectivity of each face.
+        transmission_{1,2,3} : float
+            Transmission of each face.
+        max_interact_count_{2,3} : int
+            Maximum interaction count for faces 2 and 3.
         """
         super().__init__(origin, **kwargs)
         self.name = kwargs.get("name", self.__class__.__name__)

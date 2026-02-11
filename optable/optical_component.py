@@ -494,7 +494,7 @@ class Block(OpticalComponent):
 
 
 class BaseMirror(OpticalComponent):
-    """Base reflective surface with optional straight-through transmission."""
+    """Base reflective surface"""
 
     def __init__(
         self,
@@ -503,8 +503,7 @@ class BaseMirror(OpticalComponent):
         transmission: float = 0.0,
         **kwargs,
     ):
-        """Initialize mirror interaction coefficients.
-
+        """
         Args:
             origin: Component origin in lab coordinates.
             reflectivity: Fraction of incoming intensity sent to reflected ray.
@@ -576,8 +575,7 @@ class BaseRefraciveSurface(OpticalComponent):
         transmission: float = 1.0,
         **kwargs,
     ):
-        """Initialize refractive interface parameters.
-
+        """
         Args:
             origin: Component origin in lab coordinates.
             n1: Refractive index for local ``x > 0`` side.
@@ -884,21 +882,21 @@ class BeamSplitter(SquareMirror):
 
 
 class Lens(OpticalComponent):
-    """Thin lens with circular aperture."""
+    """Thin ideal lens with circular aperture."""
 
     def __init__(
         self,
         origin,
-        focal_length,
+        focal_length: float,
         radius: float = 0.5,
         transmission: float = 1.0,
         **kwargs,
     ):
-        """Initialize a thin lens element.
+        """
 
         Args:
             origin: Component origin in lab coordinates.
-            focal_length: Thin-lens focal length in model units.
+            focal_length: focal length of the lens.
             radius: Circular aperture radius.
             transmission: Intensity scaling applied to transmitted ray.
         """
