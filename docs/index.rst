@@ -47,7 +47,7 @@ Start Here
 
    installation
    examples/index
-   detailed_doc
+   api_doc
 
 Indices
 =======
