@@ -162,27 +162,27 @@ todo_include_todos = True
 html_theme = "pydata_sphinx_theme"
 
 html_theme_options = {
-    "github_url": "https://github.com/nikolasibalic/ARC-Alkali-Rydberg-Calculator",
+    "github_url": "https://github.com/tim4431/optable",
     "icon_links": [
-        {
-            "name": "Contributing",
-            "url": "https://arc-alkali-rydberg-calculator.readthedocs.io/en/latest/contribute.html",
-            "icon": "fa fa-gavel fa-fw",
-        },
-        {
-            "name": "Support",
-            "url": "https://github.com/nikolasibalic/ARC-Alkali-Rydberg-Calculator/discussions",
-            "icon": "fa fa-comment fa-fw",
-        },
+        # {
+        #     "name": "Contributing",
+        #     "url": "https://arc-alkali-rydberg-calculator.readthedocs.io/en/latest/contribute.html",
+        #     "icon": "fa fa-gavel fa-fw",
+        # },
+        # {
+        #     "name": "Support",
+        #     "url": "https://github.com/nikolasibalic/ARC-Alkali-Rydberg-Calculator/discussions",
+        #     "icon": "fa fa-comment fa-fw",
+        # },
         {
             "name": "PyPI",
-            "url": "https://pypi.org/project/ARC-Alkali-Rydberg-Calculator/",
+            "url": "https://pypi.org/project/op_table/",
             "icon": "fas fa-box",
         },
     ],
     "use_edit_page_button": True,
-    "show_toc_level": 1,
-    # "show_nav_level": 2,
+    "show_toc_level": 3,
+    "show_nav_level": 3,
     # "search_bar_position": "navbar",  # TODO: Deprecated - remove in future version
     # "navbar_align": "left",  # [left, content, right] For testing that the navbar items align properly
     # "navbar_start": ["navbar-logo", "navbar-version"],

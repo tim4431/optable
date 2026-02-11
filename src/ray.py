@@ -9,45 +9,50 @@ class GaussianBeam:
     """Calculation for Gaussian beam q-parameter"""
 
     @staticmethod
-    def q_at_waist(w0, wl, n=1) -> complex:
+    def q_at_waist(w0: Union[float, np.ndarray], wl: float, n: float = 1):
         """Return ``q`` at beam waist."""
         return (1j * n * np.pi * w0**2) / wl
 
     @staticmethod
-    def q_at_z(qo, z) -> complex:
+    def q_at_z(qo, z: Union[float, np.ndarray]):
         """Propagate ``q`` by free-space distance ``z``."""
         return qo + z
 
     @staticmethod
-    def distance_to_waist(q) -> float:
+    def distance_to_waist(q: Union[complex, np.ndarray]):
         """Return distance from current point to waist plane."""
         z = np.real(q)
         return z
 
     @staticmethod
-    def waist(q, wl, n=1) -> float:
+    def waist(q: Union[complex, np.ndarray], wl: float, n: float = 1):
         """Return waist radius implied by complex ``q``."""
         w0 = np.sqrt((wl * np.imag(q)) / (n * np.pi))
-        return float(w0)
+        return w0
 
     @staticmethod
-    def rayleigh_range(q) -> float:
+    def rayleigh_range(q: Union[complex, np.ndarray]):
         """Return Rayleigh range from complex ``q``."""
         zr = np.imag(q)
-        return float(zr)
+        return zr
 
     @staticmethod
-    def radius_of_curvature(q) -> float:
+    def radius_of_curvature(q: Union[complex, np.ndarray]):
         """Return wavefront radius of curvature from complex ``q``."""
         R = 1 / np.real(1 / q)
-        return float(R)
+        return R
 
     @staticmethod
-    def spot_size(qo, z, wl, n=1) -> float:
+    def spot_size(
+        qo: Union[complex, np.ndarray],
+        z: Union[float, np.ndarray],
+        wl: float,
+        n: float = 1,
+    ):
         """Return beam spot size after propagation distance ``z`` from the waist."""
         q = qo + z
         w = np.sqrt(-wl / (n * np.pi * np.imag(1 / q)))
-        return float(w)
+        return w
 
 
 class Ray(Vector):
@@ -162,31 +167,31 @@ class Ray(Vector):
         return self
 
     # >>> Gaussian Beam Functions
-    def q_at_waist(self, w0) -> complex:
+    def q_at_waist(self, w0: Union[float, np.ndarray]):
         """Return Gaussian ``q`` at waist."""
         return GaussianBeam.q_at_waist(w0, self.wavelength, self.n)
 
-    def q_at_z(self, z) -> complex:
+    def q_at_z(self, z: Union[float, np.ndarray]):
         """Return Gaussian ``q`` after propagation distance ``z``."""
         return GaussianBeam.q_at_z(self.qo, z)
 
-    def distance_to_waist(self, q) -> float:
+    def distance_to_waist(self, q: Union[complex, np.ndarray]):
         """Return distance from given ``q`` plane to waist plane."""
         return GaussianBeam.distance_to_waist(q)
 
-    def waist(self, q) -> float:
+    def waist(self, q: Union[complex, np.ndarray]):
         """Return waist radius implied by ``q`` for this wavelength/index."""
         return GaussianBeam.waist(q, self.wavelength, self.n)
 
-    def rayleigh_range(self, q) -> float:
+    def rayleigh_range(self, q: Union[complex, np.ndarray]):
         """Return Rayleigh range from ``q``."""
         return GaussianBeam.rayleigh_range(q)
 
-    def radius_of_curvature(self, q) -> float:
+    def radius_of_curvature(self, q: Union[complex, np.ndarray]):
         """Return wavefront curvature radius from ``q``."""
         return GaussianBeam.radius_of_curvature(q)
 
-    def spot_size(self, z) -> float:
+    def spot_size(self, z: Union[float, np.ndarray]):
         """Return spot size at propagation distance ``z``."""
         return GaussianBeam.spot_size(self.qo, z, self.wavelength, self.n)
 

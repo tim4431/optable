@@ -8,7 +8,7 @@ GaussianBeam
 
 .. autoclass:: GaussianBeam
    :members:
-   :member-order: groupwise
+   :member-order: bysource
    :show-inheritance:
    :no-inherited-members:
 
@@ -21,9 +21,12 @@ Ray
    :show-inheritance:
    :no-inherited-members:
    :special-members: __init__
-..    :members: direction, n, transform_matrix, tangent_1, tangent_2, pathlength, phase, q_at_waist, q_at_z, distance_to_waist, waist, rayleigh_range, radius_of_curvature, spot_size, Propagate, render
+
 
 Functions
 ---------
 
-.. autofunction:: multiplex_rays_in_wavelength
+.. automodule:: src.ray
+   :members:
+   :exclude-members: GaussianBeam, Ray
+   :no-inherited-members:
