@@ -1,11 +1,16 @@
-import numpy as np, sys, matplotlib.pyplot as plt
+import numpy as np, sys, matplotlib.pyplot as plt, matplotlib.gridspec as gridspec
 from optable import *
 
+PLOT_TYPE = "Z"
+# PLOT_TYPE = "3D"
+
 if __name__ == "__main__":
-    # fig, ax0 = plt.subplots(1, 1, figsize=(12, 6))
-    # 3d
+    # plot3d
     fig = plt.figure(figsize=(12, 6))
-    ax0 = fig.add_subplot(111, projection="3d")
+    gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])
+    ax0 = plt.subplot(gs[0], projection="3d" if PLOT_TYPE == "3D" else None)
+    gs1 = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=gs[1])
+    ax1 = [plt.subplot(gs1[i]) for i in range(3)]
 
 
 wl = 780e-9
@@ -38,18 +43,15 @@ table.add_components(components)
 table.add_monitors(monitors)
 table.ray_tracing(rays)
 
-# ax0.annotate(mon0.ndata, (mon0.origin[0], mon0.origin[1]), fontsize=15, color="black")
 table.render(
     ax0,
-    # type="Z",
-    type="3D",
+    type=PLOT_TYPE,
     gaussian_beam=True,
     spot_size_scale=1,
-    # roi=[-15, 30, -10, 20],
     roi=[-15, 30, -10, 20, -10, 10],
 )
 
 if __name__ == "__main__":
     # plt.axis("off")
-    plt.savefig("../docs/gaussian_beam_3d.png", dpi=300, bbox_inches="tight")
+    plt.savefig("../docs/gaussian_beam.png", dpi=300, bbox_inches="tight")
     plt.show()

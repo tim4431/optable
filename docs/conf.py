@@ -176,7 +176,7 @@ html_theme_options = {
         # },
         {
             "name": "PyPI",
-            "url": "https://pypi.org/project/op_table/",
+            "url": "https://pypi.org/project/optical_table/",
             "icon": "fas fa-box",
         },
     ],
