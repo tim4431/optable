@@ -1,7 +1,7 @@
 Monitor
 =======
 
-.. currentmodule:: src.monitor
+.. currentmodule:: optable.monitor
 
 Classes
 -------

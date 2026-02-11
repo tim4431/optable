@@ -1,7 +1,7 @@
 Surfaces
 ========
 
-.. currentmodule:: src.surfaces
+.. currentmodule:: optable.surfaces
 
 Classes
 -------

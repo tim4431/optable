@@ -1,7 +1,7 @@
 Optical Table
 =============
 
-.. currentmodule:: src.optical_table
+.. currentmodule:: optable.optical_table
 
 Classes
 -------

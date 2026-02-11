@@ -1,7 +1,7 @@
 import numpy as np, sys, matplotlib.pyplot as plt, matplotlib.gridspec as gridspec
 
 sys.path.append("../")
-from src import *
+from optable import *
 
 BK7 = Glass_NBK7()
 # plot glass refractive index from 400nm to 1500nm

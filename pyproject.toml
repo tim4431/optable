@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools >= 77.0.3", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "optable"
+version = "1.0.0"
+authors = [
+  { name="Tim", email="zsa2056197@hotmail.com" },
+]
+description = "A simple ray tracing and visualization tool for freespace optics."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+dependencies = [
+    "numpy>=1.20",
+    "matplotlib>=3.5",
+    "scipy>=1.7",
+]
+
+
+[project.urls]
+Homepage = "https://github.com/tim4431/optable"
+Issues = "https://github.com/tim4431/optable/issues"
+
+[tool.setuptools]
+packages = ["optable"]
+include-package-data = true

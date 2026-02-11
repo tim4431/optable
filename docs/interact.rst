@@ -1,7 +1,7 @@
 Interact
 ========
 
-.. currentmodule:: src.interact
+.. currentmodule:: optable.interact
 
 Classes
 -------

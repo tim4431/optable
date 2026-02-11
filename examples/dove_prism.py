@@ -1,7 +1,5 @@
 import numpy as np, sys, matplotlib.pyplot as plt, matplotlib.gridspec as gridspec
-
-sys.path.append("../")
-from src import *
+from optable import *
 
 PLOT_TYPE = "3D"
 if __name__ == "__main__":

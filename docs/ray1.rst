@@ -1,7 +1,7 @@
 Ray
 ===
 
-.. automodule:: src.ray
+.. automodule:: optable.ray
    :members:
    :member-order: groupwise
    :show-inheritance:

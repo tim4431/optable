@@ -1,7 +1,7 @@
 Solver
 ======
 
-.. .. currentmodule:: src.solver
+.. .. currentmodule:: optable.solver
 
 .. Functions
 .. ---------
@@ -12,7 +12,7 @@ Solver
 
 .. .. autofunction:: solve_normal_to_normal_rotation
 
-.. automodule:: src.solver
+.. automodule:: optable.solver
    :members:
    :member-order: groupwise
    :show-inheritance:

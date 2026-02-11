@@ -1,7 +1,7 @@
 Component Group
 ===============
 
-.. currentmodule:: src.component_group
+.. currentmodule:: optable.component_group
 
 Classes
 -------

@@ -1,7 +1,5 @@
 import numpy as np, sys, matplotlib.pyplot as plt
-
-sys.path.append("../")
-from src import *
+from optable import *
 
 if __name__ == "__main__":
     # fig, ax0 = plt.subplots(1, 1, figsize=(12, 6))

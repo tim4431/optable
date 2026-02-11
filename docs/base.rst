@@ -1,7 +1,7 @@
 Base
 ====
 
-.. currentmodule:: src.base
+.. currentmodule:: optable.base
 
 Classes
 -------

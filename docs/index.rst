@@ -25,9 +25,9 @@ Quick Example
 
 .. code-block:: python
 
-   from src.optical_component import Mirror, Lens
-   from src.ray import Ray
-   from src.optical_table import OpticalTable
+   from optable.optical_component import Mirror, Lens
+   from optable.ray import Ray
+   from optable.optical_table import OpticalTable
 
    rays = [Ray([-10, 0, 0], [1, 0, 0], wavelength=780e-9, w0=10e-6)]
    components = [

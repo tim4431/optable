@@ -1,7 +1,7 @@
 Optical Component
 =================
 
-.. currentmodule:: src.optical_component
+.. currentmodule:: optable.optical_component
 
 OpticalComponent
 ----------------

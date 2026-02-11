@@ -1,7 +1,7 @@
 Material
 ========
 
-.. currentmodule:: src.material
+.. currentmodule:: optable.material
 
 Classes
 -------

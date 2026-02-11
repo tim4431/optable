@@ -36,7 +36,7 @@ pip install -r requirements.txt
 ```python
 import numpy as np, sys, matplotlib.pyplot as plt
 
-sys.path.append("../src/")
+sys.path.append("../optable/")
 from optical_component import *
 from optical_table import OpticalTable
 from component_group import GlassSlab
