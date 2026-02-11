@@ -78,7 +78,6 @@ autodoc_default_options = {
     "member-order": "bysource",
     "undoc-members": True,
     "show-inheritance": True,
-    "no-inherited-members": True,
 }
 autosummary_imported_members = True
 

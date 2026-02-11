@@ -16,10 +16,8 @@ CircleGlassSlab
 ---------------
 
 .. autoclass:: CircleGlassSlab
+   :no-inherited-members:
    :special-members: __init__
-..    :member-order: bysource
-..    :show-inheritance:
-..    :no-inherited-members:
 
 WedgePlate
 ----------

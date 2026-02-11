@@ -15,6 +15,7 @@ class Base:
             setattr(self, key, value)
 
     def copy(self, **kwargs):
+        """Create a copy of the object with the same id."""
         obj = copy.deepcopy(self)
         for key, value in kwargs.items():
             setattr(obj, key, value)
@@ -22,12 +23,15 @@ class Base:
 
 
 class Vector(Base):
+    """3D vector class with basic operations."""
+
     def __init__(self, origin, **kwargs):
         super().__init__(**kwargs)
         self.origin = np.array(origin, dtype=float)
         self.unit = kwargs.get("unit", 1e-2)  # default unit is cm
 
     def _normalize_vector(self, vector) -> np.ndarray:
+        """Normalize a vector to have unit length."""
         vec = np.array(vector, dtype=float)
         return vec / np.linalg.norm(vec)
 
@@ -37,7 +41,7 @@ class Vector(Base):
         Returns the rotation matrix for a proper rotation by angle theta
         around the axis (u_x, u_y, u_z), where the axis is a unit vector.
 
-        Parameters:
+        Args:
             axis: tuple or list of length 3 (unit vector u_x, u_y, u_z)
             theta: float, rotation angle in radians
 
@@ -75,7 +79,15 @@ class Vector(Base):
         return R
 
     def _vector_to_R(self, t: np.ndarray) -> np.ndarray:
-        """Return 3×3 rotation matrix taking (1,0,0) to t = (tx,ty,tz)."""
+        """
+        Return 3x3 rotation matrix taking (1,0,0) to t = (tx,ty,tz).
+
+        Args:
+            t: (tx, ty, tz) target vector
+
+        Returns:
+            A 3x3 numpy array representing the rotation matrix.
+        """
         v = self._normalize_vector(t)
 
         # Special cases: colinear with ±x
@@ -92,45 +104,55 @@ class Vector(Base):
         return R
 
     def _RotAroundLocal(self, axis, localpoint, theta):
-        # return self
         raise NotImplementedError("_RotAroundLocal method not implemented")
 
     def _RotAroundCenter(self, axis, theta):
         return self._RotAroundLocal(axis, [0, 0, 0], theta)
 
     def RotX(self, theta):
+        """Rotate around global x-axis."""
         return self._RotAroundCenter([1, 0, 0], theta)
 
     def RotY(self, theta):
+        """Rotate around global y-axis."""
         return self._RotAroundCenter([0, 1, 0], theta)
 
     def RotZ(self, theta):
+        """Rotate around global z-axis."""
         return self._RotAroundCenter([0, 0, 1], theta)
 
     def _RotAround(self, axis, point, theta):
+        """Rotate around an arbitrary axis and point."""
         localpoint = np.array(point) - self.origin
         return self._RotAroundLocal(axis, localpoint, theta)
 
     def RotXAroundLocal(self, localpoint, theta):
+        """Rotate around global x-axis at a local point."""
         return self._RotAroundLocal([1, 0, 0], localpoint, theta)
 
     def RotYAroundLocal(self, localpoint, theta):
+        """Rotate around global y-axis at a local point."""
         return self._RotAroundLocal([0, 1, 0], localpoint, theta)
 
     def RotZAroundLocal(self, localpoint, theta):
+        """Rotate around global z-axis at a local point."""
         return self._RotAroundLocal([0, 0, 1], localpoint, theta)
 
     def _Translate(self, movement):
+        """Translate the object by a given movement vector."""
         self.origin += np.array(movement)
         return self
 
     def TX(self, dx):
+        """Translate the object along the x-axis."""
         return self._Translate([dx, 0, 0])
 
     def TY(self, dy):
+        """Translate the object along the y-axis."""
         return self._Translate([0, dy, 0])
 
     def TZ(self, dz):
+        """Translate the object along the z-axis."""
         return self._Translate([0, 0, dz])
 
 
@@ -276,19 +298,6 @@ def wavelength_to_rgb(wavelength_m, gamma=0.8):
     elif 590 <= wavelength <= 750:
         attenuation = 0.3 + 0.7 * (750 - wavelength) / (750 - 590)
         R = (1.0 * attenuation) ** gamma
-
-    # # --- Infrared False Color Mapping (> 750 nm) ---
-    # elif 750 < wavelength <= 1400:
-    #     # Near IR: Represented as Deep Maroon
-    #     ratio = (wavelength - 750) / (1400 - 750)
-    #     R = 0.3 + 0.2 * (1 - ratio)  # Constant dark red intensity
-    #     G, B = 0.0, 0.0
-    # elif 1400 < wavelength <= 2500:
-    #     # Short-wave IR: Transition Maroon -> Dark Earthy Brown
-    #     ratio = (wavelength - 1400) / (2500 - 1400)
-    #     R = 0.3 * (1 - ratio) + 0.2 * ratio
-    #     G = 0.1 * ratio
-    #     B = 0.05 * ratio
 
     # --- High-Contrast IR Mapping ---
     elif 750 < wavelength <= 1100:

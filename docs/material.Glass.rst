@@ -3,7 +3,10 @@ Glass Materials
 
 .. currentmodule:: optable.material
 
+.. rubric:: Methods
+
 .. autosummary::
+    :toctree: generated/
 
     Glass_NBK7
     Glass_UVFS
@@ -43,14 +46,3 @@ Glass Materials
    :no-inherited-members:
 
 
-.. rubric:: Methods
-
-.. autosummary::
-    :toctree: generated/
-
-    Glass_NBK7
-    Glass_UVFS
-    Glass_NSF5
-    Glass_NSF11
-    Glass_NSK2
-    Glass_NSF57
