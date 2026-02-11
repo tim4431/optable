@@ -55,12 +55,10 @@ SellmeierMaterial
    :no-inherited-members:
    :special-members: __init__
 
-Glass_NBK7
-----------
+Glass Materials
+--------------
 
-.. autosummary::  optable.material
-    :toctree: generated/
-    :recursive:
+.. autosummary::
 
     Glass_NBK7
     Glass_UVFS
@@ -73,52 +71,32 @@ Glass_NBK7
    :member-order: bysource
    :show-inheritance:
    :no-inherited-members:
-   :special-members: __init__
-
-Glass_UVFS
-----------
 
 .. autoclass:: Glass_UVFS
    :member-order: bysource
    :show-inheritance:
    :no-inherited-members:
-   :special-members: __init__
-
-Glass_NSF5
-----------
 
 .. autoclass:: Glass_NSF5
    :member-order: bysource
    :show-inheritance:
    :no-inherited-members:
-   :special-members: __init__
-
-Glass_NSF11
------------
 
 .. autoclass:: Glass_NSF11
    :member-order: bysource
    :show-inheritance:
    :no-inherited-members:
-   :special-members: __init__
-
-Glass_NSK2
-----------
 
 .. autoclass:: Glass_NSK2
    :member-order: bysource
    :show-inheritance:
    :no-inherited-members:
-   :special-members: __init__
-
-Glass_NSF57
------------
 
 .. autoclass:: Glass_NSF57
    :member-order: bysource
    :show-inheritance:
    :no-inherited-members:
-   :special-members: __init__
+
 
 Functions
 ---------

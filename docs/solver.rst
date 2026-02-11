@@ -14,7 +14,7 @@ Solver
 
 .. automodule:: optable.solver
    :members:
-   :member-order: groupwise
+   :member-order: bysource
    :show-inheritance:
    :no-inherited-members:
    :special-members: __init__
