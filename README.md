@@ -30,7 +30,7 @@ For examples of use check [Examples](https://optable.readthedocs.io/en/latest/ex
 pip install optical_table
 ```
 
-or
+or install from source:
 
 ```python
 git clone https://github.com/tim4431/optable.git
