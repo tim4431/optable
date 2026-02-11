@@ -1,13 +1,20 @@
 Solver
 ======
 
-.. currentmodule:: src.solver
+.. .. currentmodule:: src.solver
 
-Functions
----------
+.. Functions
+.. ---------
 
-.. autofunction:: solve_ray_bboxes_intersections
+.. .. autofunction:: solve_ray_bboxes_intersections
 
-.. autofunction:: solve_ray_ray_intersection
+.. .. autofunction:: solve_ray_ray_intersection
 
-.. autofunction:: solve_normal_to_normal_rotation
+.. .. autofunction:: solve_normal_to_normal_rotation
+
+.. automodule:: src.solver
+   :members:
+   :member-order: groupwise
+   :show-inheritance:
+   :no-inherited-members:
+   :special-members: __init__

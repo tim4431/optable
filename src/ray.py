@@ -6,52 +6,52 @@ _RAY_NONE_LENGTH = 100
 
 
 class GaussianBeam:
-    """Utility formulas for Gaussian beam ``q``-parameter optics."""
+    """Calculation for Gaussian beam q-parameter"""
 
     @staticmethod
-    def q_at_waist(w0, wl, n=1):
-        """Return complex ``q`` at beam waist from waist radius and wavelength."""
+    def q_at_waist(w0, wl, n=1) -> complex:
+        """Return ``q`` at beam waist."""
         return (1j * n * np.pi * w0**2) / wl
 
     @staticmethod
-    def q_at_z(qo, z):
+    def q_at_z(qo, z) -> complex:
         """Propagate ``q`` by free-space distance ``z``."""
         return qo + z
 
     @staticmethod
-    def distance_to_waist(q):
-        """Return signed distance from current plane to waist plane."""
+    def distance_to_waist(q) -> float:
+        """Return distance from current point to waist plane."""
         z = np.real(q)
         return z
 
     @staticmethod
-    def waist(q, wl, n=1):
+    def waist(q, wl, n=1) -> float:
         """Return waist radius implied by complex ``q``."""
         w0 = np.sqrt((wl * np.imag(q)) / (n * np.pi))
         return float(w0)
 
     @staticmethod
-    def rayleigh_range(q):
+    def rayleigh_range(q) -> float:
         """Return Rayleigh range from complex ``q``."""
         zr = np.imag(q)
         return float(zr)
 
     @staticmethod
-    def radius_of_curvature(q):
+    def radius_of_curvature(q) -> float:
         """Return wavefront radius of curvature from complex ``q``."""
         R = 1 / np.real(1 / q)
         return float(R)
 
     @staticmethod
-    def spot_size(qo, z, wl, n=1):
-        """Return beam spot size after propagation distance ``z``."""
+    def spot_size(qo, z, wl, n=1) -> float:
+        """Return beam spot size after propagation distance ``z`` from the waist."""
         q = qo + z
         w = np.sqrt(-wl / (n * np.pi * np.imag(1 / q)))
-        return w
+        return float(w)
 
 
 class Ray(Vector):
-    """Geometric ray with optional Gaussian beam state."""
+    """Geometric ray object, with Gaussian beam parameters."""
 
     _n = RefractiveIndex("_n")  # refractive index
 
@@ -103,29 +103,29 @@ class Ray(Vector):
         return f"Ray(origin={self.origin}, direction={self.direction}, intensity={self.intensity}, length={self.length}, alive={self.alive}, qo={self.qo})"
 
     @property
-    def direction(self):
+    def direction(self) -> np.ndarray:
         """Unit propagation direction vector."""
         return self._direction
 
     @direction.setter
-    def direction(self, direction):
-        """Set direction from an arbitrary vector and normalize."""
+    def direction(self, direction) -> np.ndarray:
+        """Set ray direction from an arbitrary vector and normalize."""
         self._direction = self._normalize_vector(direction)
-        # print(self._direction)
+        return self._direction
 
     @property
-    def n(self):
-        """Return refractive index at current wavelength."""
+    def n(self) -> float:
+        """Return refractive index function."""
         return self._n()
 
     @property
-    def transform_matrix(self):
+    def transform_matrix(self) -> np.ndarray:
         """Return rotation matrix mapping local ray frame to lab frame."""
         return self._vector_to_R(self.direction)
 
     @property
-    def tangent_1(self):
-        """Return first unit tangent vector orthogonal to propagation."""
+    def tangent_1(self) -> np.ndarray:
+        """Return unit tangent vector 1 orthogonal to propagation."""
         n = self.direction
         if n[0] == 0 and n[1] == 0:
             return np.array([1, 0, 0])
@@ -133,19 +133,28 @@ class Ray(Vector):
             return self._normalize_vector(np.cross(n, np.array([0, 0, 1])))
 
     @property
-    def tangent_2(self):
-        """Return second unit tangent vector orthogonal to propagation."""
+    def tangent_2(self) -> np.ndarray:
+        """Return unit tangent vector 2 orthogonal to propagation."""
         return self._normalize_vector(np.cross(self.direction, self.tangent_1))
 
     def pathlength(self, t: float = 0) -> float:
-        """Return accumulated optical path length including offset ``t``."""
+        """Return accumulated optical path length at parameter t."""
         return float(self._pathlength + t * self.n)
 
     def phase(self, t: float = 0) -> float:
-        """Return optical phase modulo ``2*pi`` at offset ``t``."""
+        """Return optical phase modulo ``2*pi`` at parameter t."""
         return np.mod((2 * np.pi / self.wavelength) * self.pathlength(t), 2 * np.pi)
 
-    def _RotAroundLocal(self, axis, localpoint, theta):
+    def _RotAroundLocal(self, axis, localpoint, theta) -> "Ray":
+        """Rotate ray around an axis by angle theta in radians.
+
+        Args:
+            axis: [ux,uy,uz] vector defining the rotation axis in **global** coordinates.
+            localpoint: Point in local coordinates around which to rotate.
+            theta: Rotation angle in radians.
+        Returns:
+            self: The ray object itself, modified in place.
+        """
         R = self.R(axis, theta)
         localpoint = np.array(localpoint)
         self.direction = np.dot(R, self.direction)
@@ -153,39 +162,40 @@ class Ray(Vector):
         return self
 
     # >>> Gaussian Beam Functions
-    def q_at_waist(self, w0):
-        """Return Gaussian ``q`` at waist radius ``w0`` for this ray."""
+    def q_at_waist(self, w0) -> complex:
+        """Return Gaussian ``q`` at waist."""
         return GaussianBeam.q_at_waist(w0, self.wavelength, self.n)
 
-    def q_at_z(self, z):
+    def q_at_z(self, z) -> complex:
         """Return Gaussian ``q`` after propagation distance ``z``."""
         return GaussianBeam.q_at_z(self.qo, z)
 
-    def distance_to_waist(self, q):
+    def distance_to_waist(self, q) -> float:
         """Return distance from given ``q`` plane to waist plane."""
         return GaussianBeam.distance_to_waist(q)
 
-    def waist(self, q):
+    def waist(self, q) -> float:
         """Return waist radius implied by ``q`` for this wavelength/index."""
         return GaussianBeam.waist(q, self.wavelength, self.n)
 
-    def rayleigh_range(self, q):
+    def rayleigh_range(self, q) -> float:
         """Return Rayleigh range from ``q``."""
         return GaussianBeam.rayleigh_range(q)
 
-    def radius_of_curvature(self, q):
+    def radius_of_curvature(self, q) -> float:
         """Return wavefront curvature radius from ``q``."""
         return GaussianBeam.radius_of_curvature(q)
 
-    def spot_size(self, z):
+    def spot_size(self, z) -> float:
         """Return spot size at propagation distance ``z``."""
         return GaussianBeam.spot_size(self.qo, z, self.wavelength, self.n)
 
-    def Propagate(self, z):
-        """Return a copied ray with ``qo`` propagated by distance ``z``."""
+    def Propagate(self, z) -> "Ray":
+        """Return a copied ray which is the current ray propagated by distance ``z``."""
         return self.copy(qo=self.q_at_z(z))
 
-    def _render_sampling(self, length, num_points=10):
+    def _sample_gaussian_beam(self, length, num_points=10) -> np.ndarray:
+        """Generate sampling points along the Gaussian beam path, dense near the waist."""
         z_to_waist = -self.distance_to_waist(self.qo)
         # waist is not in the ray path, linear sampling
         if z_to_waist < 0 or (z_to_waist > length):
@@ -203,13 +213,28 @@ class Ray(Vector):
     # <<< Gaussian Beam Functions
 
     def render(self, ax, type: str, **kwargs):
-        """Render the ray in 2D (``"Z"``) or 3D (``"3D"``).
+        """Render the ray.
 
-        Supports optional directional arrows and Gaussian beam envelopes.
+        Args:
+            ax: Matplotlib axis to render on.
+            type: "Z" for 2D rendering xOy plane, "3D" for 3D rendering.
+            **kwargs: Additional rendering options.
+                - color: (default "black") Color of the ray.
+                - physical_color: (default False) If True, color is based on wavelength.
+                - linewidth: (default 0.5) Width of the ray line.
+                - linestyle: (default "-") Style of the ray line.
+                - ray_arrow: (default False) If True, draw an arrow indicating direction.
+                - gaussian_beam: (default False) If True, render Gaussian beam envelope.
+                - detailed_render: (default False) If True, render detailed Gaussian beam contours.
+                - render_line: (default True) If True, render the ray line.
+                - arrow: (default False) If True, draw an arrow indicating direction in 3D.
+                - spot_size_scale: (default 1.0) Scale factor for the Gaussian beam spot size.
+                - annote_waist: (default False) If True, annotate the waist position.
+        Returns:
+            None: The ray is rendered on the provided axis.
         """
 
-        # Set color and transparency based on ray properties
-        # color = "blue" if self.length is None else "black"
+        # read configuration
         physical_color = kwargs.get("physical_color", False)
         if physical_color and self.wavelength is not None:
             color = wavelength_to_rgb(self.wavelength * self.unit)
@@ -267,7 +292,7 @@ class Ray(Vector):
 
             gaussian_beam = kwargs.get("gaussian_beam", False)
             if gaussian_beam:
-                t = self._render_sampling(length, num_points=20)
+                t = self._sample_gaussian_beam(length, num_points=20)
                 vx, vy = self.direction[0], self.direction[1]
                 x = self.origin[0] + t * vx
                 y = self.origin[1] + t * vy
@@ -337,7 +362,7 @@ class Ray(Vector):
                 z_to_waist = -self.distance_to_waist(self.qo)
 
                 # Discrete z positions for the contour circles
-                t = self._render_sampling(length, num_points=10)
+                t = self._sample_gaussian_beam(length, num_points=10)
                 n_vertices = 6  # Number of vertices per circle (polygon approximation)
 
                 # Compute the contour circles and store them in a list.

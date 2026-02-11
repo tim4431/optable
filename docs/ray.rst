@@ -7,8 +7,8 @@ GaussianBeam
 ------------
 
 .. autoclass:: GaussianBeam
-   :members: q_at_waist, q_at_z, distance_to_waist, waist, rayleigh_range, radius_of_curvature, spot_size
-   :member-order: bysource
+   :members:
+   :member-order: groupwise
    :show-inheritance:
    :no-inherited-members:
 
