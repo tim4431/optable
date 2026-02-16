@@ -3,15 +3,15 @@ API documentation
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
-   base
    ray
-   surfaces
-   material
    optical_component
    component_group
    optical_table
+   material
+   surfaces
+   base
    monitor
    interact
    solver
