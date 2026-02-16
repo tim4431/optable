@@ -642,8 +642,8 @@ if __name__ == "__main__":
     MODE = "interact"  # 'interact' | 'optimize' | 'scan'
 
     table = InteractiveOpticalTable(fileName=FILE_NAME)
-    table._display_optimization = False  # enable cost function display
-    # table._display_optimization = True  # enable cost function display
+    # table._display_optimization = False  # enable cost function display
+    table._display_optimization = True  # enable cost function display
 
     match MODE:
         case "interact":

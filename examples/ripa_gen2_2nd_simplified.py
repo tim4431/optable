@@ -12,6 +12,8 @@ ripa_2nd_demo = {
     "R2dXMLA": [0.0, -0.3, 0.4],
     "R2dY4F": [0, -0.5, 0.5],
     "R2kappa": [-1.0394, -2, 2],
+    "R2a4": [-0.00038561165773536645, -0.04, 0.04],
+    "R2a6": [0.006354907703229353, -0.04, 0.04],
 }
 
 presets = {"default": ripa_2nd_demo}
@@ -85,8 +87,8 @@ R2l0r = ASphericParametricLens(
     R=R,
     n=n,
     kappa=R2kappa,
-    a4=0,
-    a6=0,
+    a4=R2a4 * (1e-3 / 1e-2) ** 4,
+    a6=R2a6 * (1e-3 / 1e-2) ** 6,
     name="L0",
 ).TY(R2DMLA / 2 + R2dY4F)
 
@@ -98,8 +100,8 @@ R2l1r = (
         R=R,
         n=n,
         kappa=R2kappa,
-        a4=0,
-        a6=0,
+        a4=R2a4 * (1e-3 / 1e-2) ** 4,
+        a6=R2a6 * (1e-3 / 1e-2) ** 6,
         name="L1",
     )
     .RotZ(np.pi)
@@ -169,6 +171,7 @@ if __name__ == "__main__":
     PList = []
     nList = []
     rocList = []
+    pathLengthList = []
     for i in range(R2NNMLA):
         ray0i = rays_Mon[i]
         ray0i_id = ray0i._id
@@ -178,6 +181,8 @@ if __name__ == "__main__":
         )
         d0 = ray0i.distance_to_waist(ray0i.q_at_z(t0))
         d1 = ray1i.distance_to_waist(ray1i.q_at_z(t1))
+        pl0 = ray0i.pathlength(t0)
+        pl1 = ray1i.pathlength(t1)
         d = 1.5
         roci = 2 * (d**2 + d0 * d1) / (d0 + d1)
         ax0.scatter(P[0], P[1], color="magenta", s=10)
@@ -186,6 +191,14 @@ if __name__ == "__main__":
         PList.append(P)
         nList.append(n)
         rocList.append(roci)
+        pathLengthList.append((pl0 + pl1) / 2)
+
+    stdCX = np.std([P[0] for P in PList])
+    print("std of intersection points in X direction (cm)=", stdCX)
+
+    pathlengths = np.array(pathLengthList) / R2wl
+    pathlengths -= np.min(pathlengths)
+    print("pathlengths (in unit of wavelength)=", pathlengths)
 
     print("See magenta dots: ray-ray intersection points")
     plt.show()
