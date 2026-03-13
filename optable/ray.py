@@ -251,10 +251,11 @@ class Ray(Vector):
         length = self.length if self.length else _RAY_NONE_LENGTH
 
         #
-        if type == "Z":
+        if type in ["X", "Y", "Z"]:
+            dimension_dict = {"Z": [0, 1], "X": [1, 2], "Y": [2, 0]}
             # Determine the start and end points of the ray
-            start = self.origin[:2]
-            end = start + self.direction[:2] * length
+            start = self.origin[dimension_dict[type]]
+            end = start + self.direction[dimension_dict[type]] * length
 
             render_line = kwargs.get("render_line", True)
             # Plot the line representing the ray
@@ -273,13 +274,9 @@ class Ray(Vector):
             if arrow:
                 # Add an arrow in the middle to indicate direction
                 midpoint = (start + end) / 2
-                arrow_length = 0.2 * np.linalg.norm(
-                    end - start
-                )  # Scale arrow relative to ray
-                arrow_direction = (
-                    arrow_length
-                    * self.direction[:2]
-                    / np.linalg.norm(self.direction[:2])
+                arrow_length = 0.2 * np.linalg.norm(end - start)
+                arrow_direction = self._normalize_vector(
+                    self.direction[dimension_dict[type]]
                 )
                 ax.arrow(
                     midpoint[0],
@@ -298,9 +295,10 @@ class Ray(Vector):
             gaussian_beam = kwargs.get("gaussian_beam", False)
             if gaussian_beam:
                 t = self._sample_gaussian_beam(length, num_points=20)
-                vx, vy = self.direction[0], self.direction[1]
-                x = self.origin[0] + t * vx
-                y = self.origin[1] + t * vy
+                vx, vy = self.direction[dimension_dict[type]]
+                x0, y0 = self.origin[dimension_dict[type]]
+                x = x0 + t * vx
+                y = y0 + t * vy
                 spot_size_scale = kwargs.get("spot_size_scale", 1.0)
                 spots_size = self.spot_size(t) * spot_size_scale
                 # create paths of polygon and fill it
@@ -318,8 +316,8 @@ class Ray(Vector):
                 if annote_waist:
                     if 0 < z_to_waist < length:
                         ax.scatter(
-                            self.origin[0] + z_to_waist * vx,
-                            self.origin[1] + z_to_waist * vy,
+                            x0 + z_to_waist * vx,
+                            y0 + z_to_waist * vy,
                             marker=".",
                             color="black",
                             alpha=alpha,

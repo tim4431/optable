@@ -175,7 +175,7 @@ class Rectangle(Plane):
             x = np.array([0, 0])
             y = np.array([-self.width / 2, self.width / 2])
             z = np.array([0, 0])
-        elif type == "3D":
+        elif type == "3D" or type in ["X", "Y"]:
             x = np.zeros(5)
             y = np.array(
                 [

@@ -147,23 +147,24 @@ class OpticalTable:
         return rays
 
     def render(self, ax=None, type: str = "Z", roi=None, **kwargs):
-        if type == "Z":
+        label_dict = {"Z": ["X", "Y"], "X": ["Y", "Z"], "Y": ["Z", "X"]}
+        if type in ["X", "Y", "Z"]:
             if ax is None:
                 fig, ax = plt.subplots(figsize=(10, 8))
                 plt.subplots_adjust(left=0.1, right=0.7)
-            ax.set_xlabel("X")
-            ax.set_ylabel("Y")
+            ax.set_xlabel(label_dict[type][0])
+            ax.set_ylabel(label_dict[type][1])
             # print(self.norender_set)
             for ray in self.rays:
                 # print(ray._id)
                 if ray._id not in self.norender_set:
-                    ray.render(ax, type="Z", **kwargs)
+                    ray.render(ax, type=type, **kwargs)
             for component in self.components:
                 if component._id not in self.norender_set:
-                    component.render(ax, type="Z", **kwargs)
+                    component.render(ax, type=type, **kwargs)
             for monitor in self.monitors:
                 if monitor._id not in self.norender_set:
-                    monitor.render(ax, type="Z", **kwargs)
+                    monitor.render(ax, type=type, **kwargs)
             # ax.set_aspect("equal")
             ax.set_aspect("auto")
         elif type == "3D":

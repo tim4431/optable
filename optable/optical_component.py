@@ -256,34 +256,41 @@ class OpticalComponent(Vector):
         color = kwargs.get("color", "black")
         linewidth = kwargs.get("linewidth", 2)
         global_x, global_y, global_z = self._get_boundary_points(type)
+        global_xyz = [global_x, global_y, global_z]
         detailed_render = kwargs.get("detailed_render", False)
         label = kwargs.get("label", None)
         label_fontsize = kwargs.get("label_fontsize", 10)
         #
-        if type == "Z":
+        if type in ["X", "Y", "Z"]:
+            dimension_dict = {"Z": [0, 1], "X": [1, 2], "Y": [2, 0]}
+
             ax.plot(
-                global_x,
-                global_y,
+                global_xyz[dimension_dict[type][0]],
+                global_xyz[dimension_dict[type][1]],
                 color=color,
                 linewidth=linewidth,
             )
+
             if self.render_comp_vec:
                 # add a component vector (red)
                 normal = self.normal
                 ax.quiver(
-                    self.origin[0],
-                    self.origin[1],
-                    normal[0],
-                    normal[1],
+                    self.origin[dimension_dict[type][0]],
+                    self.origin[dimension_dict[type][1]],
+                    normal[dimension_dict[type][0]],
+                    normal[dimension_dict[type][1]],
                     color=color,
                     # scale=2,
                     # scale_units="xy",
                 )
+
             if label and self.label:
                 if self.label_position is not None:
                     ax.text(
-                        self.origin[0] + self.label_position[0],
-                        self.origin[1] + self.label_position[1],
+                        self.origin[dimension_dict[type][0]]
+                        + self.label_position[dimension_dict[type][0]],
+                        self.origin[dimension_dict[type][1]]
+                        + self.label_position[dimension_dict[type][1]],
                         self.label,
                         color=color,
                         fontsize=label_fontsize,

@@ -1,4 +1,5 @@
 from .optical_component import *
+from .component_group import *
 
 
 class Monitor(OpticalComponent):
@@ -459,3 +460,40 @@ class Monitor(OpticalComponent):
         ax.set_title("Tilt Y Position")
         ax.set_xticks(np.arange(len(tYList)))
         ax.set_xticklabels([f"{i}" for i in range(len(tYList))])
+
+    def render_projection(self, ax, comp, **kwargs):
+        # Get edge color and line width from kwargs
+        color = kwargs.get("color", "black")
+        linewidth = kwargs.get("linewidth", 2)
+
+        tangent_Y = self.tangent_Y
+        tangent_Z = self.tangent_Z
+        origin = np.array(self.origin)
+
+        def render_comp(c):
+            global_x, global_y, global_z = c._get_boundary_points("3D")
+            # Stack into (N, 3) array of global points
+            pts = np.column_stack([global_x, global_y, global_z])
+            _render_proj_pts(pts)
+
+        def _render_proj_pts(pts):
+            rel = pts - origin  # (N, 3)
+            local_y = rel @ tangent_Y  # projection onto tangent_Y
+            local_z = rel @ tangent_Z  # projection onto tangent_Z
+            ax.plot(local_y, local_z, color=color, linewidth=linewidth)
+
+        def _render_proj_pt(pt):
+            rel = pt - origin  # (1, 3)
+            local_y = rel @ tangent_Y  # projection onto tangent_Y
+            local_z = rel @ tangent_Z  # projection onto tangent_Z
+            ax.scatter(local_y, local_z, color=color, linewidth=linewidth, marker="+")
+
+        if isinstance(comp, ComponentGroup):
+            for c in comp.components:
+                render_comp(c)
+        elif isinstance(comp, OpticalComponent):
+            render_comp(comp)
+        elif isinstance(comp, np.ndarray):
+            _render_proj_pt(comp)
+        else:
+            raise TypeError(f"Unsupported component type: {type(comp)}")

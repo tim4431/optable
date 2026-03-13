@@ -253,10 +253,13 @@ class MMA(ComponentGroup):
         super().__init__(origin, **kwargs)
         self.pitch = pitch
         #
-        if isinstance(N, int):
+        if not isinstance(N, tuple):
             N = (N, 1)
         ny, nz = N
-        if isinstance(roc, (int, float)):
+        if not isinstance(pitch, tuple):
+            pitch = (pitch, pitch)
+        py, pz = pitch
+        if not isinstance(roc, tuple):
             roc = np.ones((nz, ny)) * roc
         else:
             roc = np.array(roc)
@@ -264,11 +267,15 @@ class MMA(ComponentGroup):
                 nz,
                 ny,
             ), f"roc shape {roc.shape} does not match ({nz}, {ny})"
+        mma_shifty = kwargs.get("mma_shifty", 0)
+        mma_shiftz = kwargs.get("mma_shiftz", 0)
+        shifty_z = kwargs.get("shifty_z", 0)
+        shiftz_y = kwargs.get("shiftz_y", 0)
         #
         for i in range(nz):
             for j in range(ny):
-                z = (i - (nz - 1) / 2) * pitch
-                y = (j - (ny - 1) / 2) * pitch
+                z = (i - (nz - 1) / 2) * pz + (j * shiftz_y) + mma_shiftz
+                y = (j - (ny - 1) / 2) * py + (i * shifty_z) + mma_shifty
                 o = np.array([0, y, z]) + self.origin
                 roci = roc[i, j] * (1 + roc_drift * np.random.randn())
                 # print(kwargs.get("transmission", None))
@@ -281,15 +288,18 @@ class MMA(ComponentGroup):
                     **kwargs,
                 )
                 self.add_component(mirror)
-
+        mma_width = kwargs.get("mma_width", ny * py)
+        mma_height = kwargs.get("mma_height", nz * pz)
+        back_reflectivity = kwargs.get("back_reflectivity", 0)
+        back_transmission = kwargs.get("back_transmission", 1)
         backsurface = SquareRefractive(
             origin=self.origin + np.array([thickness, 0, 0]),
-            width=ny * pitch,
-            height=nz * pitch,
+            width=mma_width,
+            height=mma_height,
             n1=1,
             n2=n,
-            reflectivity=0,
-            transmission=1,
+            reflectivity=back_reflectivity,
+            transmission=back_transmission,
         )
         self.add_component(backsurface)
 
@@ -419,6 +429,71 @@ class WedgePlate(ComponentGroup):
                 transmission=transmission,
                 **kwargs,
             ).RotZ(-wedge_angle / 2)
+        )
+
+
+class MirrorPair(ComponentGroup):
+    def __init__(
+        self,
+        origin,
+        width=1.0,
+        height=1.0,
+        angle: float = np.pi / 2,
+        reflectivity_1=1,
+        transmission_1=0,
+        reflectivity_2=1,
+        transmission_2=0,
+        **kwargs,
+    ):
+        """Symmetric two-mirror pair.
+
+        Two square mirrors are centered at ``y=+width/2`` and ``y=-width/2`` and
+        rotated symmetrically about the z-axis so that the angle between the two
+        mirror faces is ``angle``.
+
+        Parameters
+        ----------
+        origin : array-like
+            Group reference origin in lab coordinates.
+        width : float, default 1.0
+            Mirror width and separation scale (also used in mirror center offsets).
+        height : float, default 1.0
+            Mirror height along z.
+        angle : float, default π/2
+            Included angle (radians) between the two mirror faces.
+        reflectivity_1, reflectivity_2 : float, default 1
+            Reflectivity for mirror 1 and mirror 2.
+        transmission_1, transmission_2 : float, default 0
+            Transmission for mirror 1 and mirror 2.
+        **kwargs
+            Forwarded to underlying ``SquareMirror`` constructors.
+        """
+        super().__init__(origin, **kwargs)
+        self.name = kwargs.get("name", self.__class__.__name__)
+
+        # +45deg face
+        self.add_component(
+            SquareMirror(
+                origin + np.array([0, width / 2, 0]),
+                width=width,
+                height=height,
+                reflectivity=reflectivity_1,
+                transmission=transmission_1,
+                name=f"{self.name} mirror 1",
+                **kwargs,
+            )._RotAroundLocal([0, 0, 1], [0, -width / 2, 0], (np.pi - angle) / 2)
+        )
+        # -45deg face
+        self.add_component(
+            SquareMirror(
+                origin + np.array([0, -width / 2, 0]),
+                width=width,
+                height=height,
+                reflectivity=reflectivity_2,
+                transmission=transmission_2,
+                name=f"{self.name} mirror 2",
+                **kwargs,
+            )._RotAroundLocal([0, 0, 1], [0, width / 2, 0], -(np.pi - angle) / 2)
         )
 
 

@@ -1,8 +1,17 @@
-import argparse, time, numpy as np, os
+import argparse
+import os
+import time
+
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, CheckButtons, RadioButtons, Button
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from scipy.optimize import minimize
+
+try:
+    from .setup_runtime import SetupScriptRuntime
+except ImportError:  # pragma: no cover
+    from setup_runtime import SetupScriptRuntime
 
 
 class InteractiveOpticalTable:
@@ -28,22 +37,22 @@ class InteractiveOpticalTable:
     # Construction helpers
     # ---------------------------------------------------------------------
 
-    def __init__(self, fileName: str, FPS: int = 20):
-        self.fileName = fileName
+    def __init__(self, fileName: str | os.PathLike[str], FPS: int = 20):
         self.last_update_time = time.time()
         self.FPS = FPS  # target frames per second for slider drags
         self.render = True  # live‑render flag
         self.changing_preset = False  # suppress spurious update() loops
         self.optimization_running = False  # flag for optimization state
         self.optimization_interrupted = False  # flag for optimization interruption
+        self._runtime = SetupScriptRuntime(fileName)
+        self.fileName = str(self._runtime.setup_path)
 
         # ---- load experimental‑setup file into its own namespace ----------
         self.namespace: dict[str, object] = {}
         self._create_axes()
         # — load user experiment file into *self.namespace*
-        with open(self.fileName, "r", encoding="utf-8") as f:
-            self.expsetup_code = f.read()
-            exec(self.expsetup_code, self.namespace)
+        self.expsetup_code = self._runtime.source_code
+        self._runtime.execute(self.namespace)
 
         self.tunable_vars_setting: dict[str, list] = self.namespace["vars"]
         self.presets: dict[str, dict] | None = self.namespace.get("presets")
@@ -454,7 +463,7 @@ class InteractiveOpticalTable:
 
     def update_table(self, **params):
         self.namespace.update(params)
-        exec(self.expsetup_code, self.namespace)
+        self._runtime.execute(self.namespace)
 
     # ------------ optimisation (selected subset) -----------------------
 
@@ -625,20 +634,53 @@ class InteractiveOpticalTable:
 # ---------------------------------------------------------------------
 # Small CLI entry‑point ------------------------------------------------
 # ---------------------------------------------------------------------
-if __name__ == "__main__":
-    FILE_NAME = os.path.join(
+def _default_setup_file() -> str:
+    return os.path.join(
         os.path.dirname(__file__),
-        "../examples",
-        "ripa_gen2_lensless.py",
-        # "mirror_pair.py",
+        "../demo",
+        "ripa_gen2_2nd.py",
     )
-    MODE = "interact"  # 'interact' | 'optimize' | 'scan'
 
-    table = InteractiveOpticalTable(fileName=FILE_NAME)
-    table._display_optimization = False  # enable cost function display
-    # table._display_optimization = True  # enable cost function display
 
-    match MODE:
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Interactive optable runner.")
+    parser.add_argument(
+        "--setup",
+        default=_default_setup_file(),
+        help="Path to the setup script.",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=("interact", "optimize", "scan"),
+        default="interact",
+        help="Runner mode.",
+    )
+    parser.add_argument(
+        "--fps",
+        type=int,
+        default=20,
+        help="Target FPS for slider drags.",
+    )
+    parser.add_argument(
+        "--display-optimization",
+        action="store_true",
+        help="Enable cost-function widgets in interact mode.",
+    )
+    return parser.parse_args()
+
+
+def run_setup_interactive(
+    setup_file: str | os.PathLike[str],
+    *,
+    mode: str = "interact",
+    fps: int = 20,
+    display_optimization: bool = False,
+) -> None:
+    """Run interactive tooling for a setup script path."""
+    table = InteractiveOpticalTable(fileName=setup_file, FPS=fps)
+    table._display_optimization = display_optimization
+
+    match mode:
         case "interact":
             table.slider_interactive()
         case "optimize":
@@ -650,3 +692,57 @@ if __name__ == "__main__":
                 "V2dXMLA",
                 np.linspace(0.7, 6.7, 11),
             )
+        case _:
+            raise ValueError(f"Unsupported mode: {mode}")
+
+
+def maybe_autorun_from_setup(
+    setup_globals: dict[str, object],
+    *,
+    flag_name: str = "OPTABLE_INTERACTIVE",
+    mode_name: str = "OPTABLE_MODE",
+    fps_name: str = "OPTABLE_FPS",
+    display_optimization_name: str = "OPTABLE_DISPLAY_OPTIMIZATION",
+) -> bool:
+    """Autorun from a setup script when a flag is set in that script.
+
+    Usage in a setup/ray file:
+        OPTABLE_INTERACTIVE = True
+        from optable.interact_new import maybe_autorun_from_setup
+        maybe_autorun_from_setup(globals())
+    """
+    if setup_globals.get("__name__") != "__main__":
+        return False
+    if not bool(setup_globals.get(flag_name, False)):
+        return False
+
+    setup_file = setup_globals.get("__file__")
+    if not isinstance(setup_file, str):
+        raise ValueError("Setup globals must contain __file__ as a string path.")
+
+    mode = str(setup_globals.get(mode_name, "interact"))
+    fps_raw = setup_globals.get(fps_name, 20)
+    fps = int(fps_raw) if fps_raw is not None else 20
+    display_optimization = bool(setup_globals.get(display_optimization_name, False))
+
+    run_setup_interactive(
+        setup_file,
+        mode=mode,
+        fps=fps,
+        display_optimization=display_optimization,
+    )
+    return True
+
+
+def main() -> None:
+    args = _parse_args()
+    run_setup_interactive(
+        args.setup,
+        mode=args.mode,
+        fps=args.fps,
+        display_optimization=args.display_optimization,
+    )
+
+
+if __name__ == "__main__":
+    main()
