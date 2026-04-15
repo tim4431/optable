@@ -67,7 +67,11 @@ def _run_one_example(script: Path, out_dir: Path) -> tuple[bool, str]:
                 return True, "ok (no figure)"
             for i, num in enumerate(fignums, start=1):
                 fig = plt.figure(num)
-                name = f"{stem}{IMAGE_EXT}" if len(fignums) == 1 else f"{stem}_{i}{IMAGE_EXT}"
+                name = (
+                    f"{stem}{IMAGE_EXT}"
+                    if len(fignums) == 1
+                    else f"{stem}_{i}{IMAGE_EXT}"
+                )
                 fig.savefig(out_dir / name, dpi=200, bbox_inches="tight")
             return True, f"ok ({len(fignums)} fallback image(s))"
 

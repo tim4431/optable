@@ -147,11 +147,19 @@ class OpticalTable:
         return rays
 
     def render(self, ax=None, type: str = "Z", roi=None, **kwargs):
-        label_dict = {"Z": ["X", "Y"], "X": ["Y", "Z"], "Y": ["Z", "X"]}
+        label_dict = {
+            "Z": ["X", "Y"],
+            "X": ["Y", "Z"],
+            "Y": ["Z", "X"],
+            "3D": ["X", "Y"],
+        }
         if type in ["X", "Y", "Z"]:
             if ax is None:
                 fig, ax = plt.subplots(figsize=(10, 8))
                 plt.subplots_adjust(left=0.1, right=0.7)
+            switch_axis = kwargs.get("switch_axis", False)
+            if switch_axis:
+                label_dict[type] = label_dict[type][::-1]
             ax.set_xlabel(label_dict[type][0])
             ax.set_ylabel(label_dict[type][1])
             # print(self.norender_set)
@@ -188,8 +196,12 @@ class OpticalTable:
             raise ValueError(f"render: Invalid type: {type}")
         #
         if roi is not None:
-            ax.set_xlim(roi[0], roi[1])
-            ax.set_ylim(roi[2], roi[3])
+            axis2roiidx = {"X": (0, 1), "Y": (2, 3), "Z": (4, 5)}
+            x_axislabel, y_axislabel = label_dict[type]
+            xidx0, xidx1 = axis2roiidx[x_axislabel]
+            yidx0, yidx1 = axis2roiidx[y_axislabel]
+            ax.set_xlim(roi[xidx0], roi[xidx1])
+            ax.set_ylim(roi[yidx0], roi[yidx1])
             if ax.name == "3d":
                 ax.set_zlim(roi[4], roi[5])
             aspect = kwargs.get("aspect", "equal")

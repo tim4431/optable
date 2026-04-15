@@ -13,15 +13,15 @@ if __name__ == "__main__":
     ax1 = [plt.subplot(gs1[i]) for i in range(3)]
 
 
-sol0 = {"y": [0.0, -1, 1], "z": [0.0, -1, 1]}
+sol0 = {"dth": [0.03, -0.3, 0.2]}
 
 vars = sol0
 for var, val in vars.items():
     if var not in locals():
         exec(f"{var} = {val[0]}")
 
-theta = 0.012
-L = 4
+theta = 0.00815
+L = 5
 wl = 780e-7
 w0 = 61e-4
 nmat = Glass_NBK7()
@@ -29,15 +29,16 @@ n = nmat.n(780e-9)
 dalpha = n * theta / (n**2 - 1)
 print(f"alpha: {dalpha*180/np.pi} deg")
 
+D = 2.5
 rays = [
     Ray([3, y + L / 2, 0], [-1, 0, 0], wavelength=wl, w0=w0, id=i)
     .Propagate(-10)
     .RotZ(theta)
-    for i, y in enumerate(np.linspace(-1, 1, 5))
+    for i, y in enumerate(np.linspace(-D, D, 5))
 ]
 print([ray._id for ray in rays])
 
-dth = 3 * np.pi / 180
+# dth = 3 * np.pi / 180
 alpha = np.pi / 4 + dth
 beta = np.pi / 2 - dalpha - 2 * dth
 print(f"alpha: {alpha*180/np.pi} deg, beta: {beta*180/np.pi} deg")

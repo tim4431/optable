@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import optable; print\\(optable.__file__\\); print\\(optable.__version__\\)\")",
+      "Bash(conda run:*)"
+    ]
+  }
+}

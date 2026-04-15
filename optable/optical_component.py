@@ -263,7 +263,9 @@ class OpticalComponent(Vector):
         #
         if type in ["X", "Y", "Z"]:
             dimension_dict = {"Z": [0, 1], "X": [1, 2], "Y": [2, 0]}
-
+            switch_axis = kwargs.get("switch_axis", False)
+            if switch_axis:
+                dimension_dict[type] = dimension_dict[type][::-1]
             ax.plot(
                 global_xyz[dimension_dict[type][0]],
                 global_xyz[dimension_dict[type][1]],

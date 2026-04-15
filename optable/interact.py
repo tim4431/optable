@@ -628,15 +628,17 @@ class InteractiveOpticalTable:
 if __name__ == "__main__":
     FILE_NAME = os.path.join(
         os.path.dirname(__file__),
-        "../examples",
-        "ripa_gen2_lensless.py",
-        # "mirror_pair.py",
+        # "../examples",
+        "../demo",
+        # "ripa_gen2_lensless.py",
+        "ripa_gen2_2nd.py",
+        # "prism_refl.py",
     )
     MODE = "interact"  # 'interact' | 'optimize' | 'scan'
 
     table = InteractiveOpticalTable(fileName=FILE_NAME)
-    table._display_optimization = False  # enable cost function display
-    # table._display_optimization = True  # enable cost function display
+    # table._display_optimization = False  # enable cost function display
+    table._display_optimization = True  # enable cost function display
 
     match MODE:
         case "interact":

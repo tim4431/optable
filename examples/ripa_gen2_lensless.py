@@ -1,6 +1,6 @@
-import numpy as np, sys, matplotlib.pyplot as plt, matplotlib.gridspec as gridspec
+import numpy as np, sys, os, matplotlib.pyplot as plt, matplotlib.gridspec as gridspec
 
-# from optable import *
+
 sys.path.append("../")
 from optable import *
 
@@ -12,7 +12,11 @@ if __name__ == "__main__":
     # plot3d
     fig = plt.figure(figsize=(12, 6))
     gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])
-    ax0 = plt.subplot(gs[0], projection="3d" if PLOT_TYPE == "3D" else None)
+    gs0 = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[0])
+    ax0 = [
+        plt.subplot(gs0[i], projection="3d" if PLOT_TYPE == "3D" else None)
+        for i in range(2)
+    ]
     gs1 = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=gs[1])
     ax1 = [plt.subplot(gs1[i]) for i in range(3)]
 
@@ -52,7 +56,7 @@ R2ultraR = 0.9995
 R2R = 0.98
 R2wl = 780e-7  # in cm
 # R2DMLA = 500e-4
-R2DMLA = 360e-4
+R2DMLA = 260e-4
 R2NMLA = 20
 R2MMLA = 5
 R2W = R2DMLA * R2NMLA / 2
@@ -62,8 +66,12 @@ R2H = R2DMLA * R2MMLA / 2
 R2d = 3e8 / (2 * BW * 1e9) / 0.01
 print("R2d=", R2d, "cm")
 Lrt = 2 * np.sqrt(R2d**2 + R2DMLA**2 / 4)
-R2MLAroc = R2d * 2
-R2w0 = np.sqrt(R2wl * R2MLAroc / (2 * np.pi))
+# R2MLAROCCOEF = 1.0
+R2MLAROCCOEF = 1.2
+R2MLAroc = (Lrt) * R2MLAROCCOEF
+print("R2MLAroc=", R2MLAroc, "cm")
+# R2w0 = np.sqrt(R2wl * R2MLAroc / (2 * np.pi))
+R2w0 = np.sqrt(R2wl * (np.sqrt((Lrt) * (R2MLAroc / 2 - Lrt / 4))) / (np.pi))
 print("R2w0=", R2w0 * 1e4, "um")
 print("R2DMLA/R2w0=", R2DMLA / R2w0)
 clipping_loss = np.exp(-2 * ((R2DMLA / 2) ** 2) / ((R2w0) ** 2))
@@ -179,11 +187,19 @@ table.ray_tracing(R2rays0)
 
 
 table.render(
-    ax0,
+    ax0[0],
     type=PLOT_TYPE,
     roi=[-5, R2d + 2, -R2W - 1, R2W + 1, -2, 2],
     gaussian_beam=True,
     label=False,
+)
+table.render(
+    ax0[1],
+    type="Y",
+    roi=[-5, R2d + 2, -R2W - 1, R2W + 1, -2, 2],
+    gaussian_beam=True,
+    label=False,
+    switch_axis=True,
 )
 table.render(
     ax1[1],
