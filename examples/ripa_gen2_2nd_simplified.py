@@ -4,16 +4,16 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from copy import deepcopy
 
+sys.path.append("../")
 from optable import *
 
 # ── Tunable parameters [value, min, max] ──
 ripa_2nd_demo = {
-    "R2MLAroc": [3, 3, 3],
     "R2dXMLA": [0.0, -0.3, 0.4],
     "R2dY4F": [0, -0.5, 0.5],
-    "R2kappa": [-1.0394, -2, 2],
-    "R2a4": [-0.00038561165773536645, -0.04, 0.04],
-    "R2a6": [0.006354907703229353, -0.04, 0.04],
+    "R2kappa": [-1.01705, -2, 2],
+    "R2a4": [-4.00e-11, -2e-9, 2e-9],
+    "R2a6": [3.180e-15, -2e-13, 2e-13],
 }
 
 presets = {"default": ripa_2nd_demo}
@@ -24,23 +24,26 @@ for var, val in vars.items():
         exec(f"{var} = {val[0]}")
 
 # ── Constants ──
+BW = 6.834682  # Rb87 hyperfine splitting, in GHz
 R2R = 0.98
 R2wl = 780e-7  # all physical quantity is in unit of cm, 780nm
-R2DMLA = 360e-4  # 360um
-R2NMLA = 100
+R2DMLA = 420e-4  # 420um
+R2NMLA = 80
 R2MMLA = 1
 R2L = R2DMLA * R2NMLA / 2
 R2Dm = 2.54 * 2
 R2X_waist = 0
 
 # ── Derived quantities ──
+R2d = 3e8 / (2 * BW * 1e9) / 0.01  # half round-trip length set by BW, in cm
+print("R2d=", R2d, "cm")
+R2MLAroc = R2d * 2
 R2w0 = np.sqrt(R2wl * R2MLAroc / (2 * np.pi))
 print("R2w0=", R2w0 * 1e4, "um")
 print("R2DMLA/R2w0=", R2DMLA / R2w0)
-clipping_loss = np.exp(-2 * ((R2DMLA / 2) ** 2) / (np.sqrt(2) * R2w0**2))
+clipping_loss = np.exp(-2 * ((R2DMLA / 2) ** 2) / ((np.sqrt(2) * R2w0) ** 2))
 print("clipping_loss=", clipping_loss)
 print("NMLA*clipping_loss=", R2NMLA * clipping_loss)
-R2d = R2MLAroc / 2
 R2theta0 = np.arctan(R2DMLA / R2d / 2)
 print("R2theta0=", R2theta0)
 R2ZRays = [(i - (R2MMLA - 1) / 2) * R2DMLA for i in range(R2MMLA)]
@@ -70,15 +73,15 @@ R2rays_p = get_r2_rays(range(0, R2NMLA, SPACING), offset=OFFSET, sign=-1)
 R2rays = deepcopy(R2rays_m + R2rays_p)
 
 
-# ── Lens pair (LENS=6: Aspheric Parametric, f=37.5, UVFS glass) ──
-EFL = 37.5
+# ── Lens pair (LENS=6: Aspheric Parametric, f=EFL, UVFS glass) ──
+EFL = 43.17
 CT = 0.8
 n = Glass_UVFS()
 R = EFL * (n.n(780e-9) - 1)
 print("R=", R * 10, "mm")
 DL = 2.54 * 3
-F1 = 37.5
-F2 = 37.5
+F1 = EFL
+F2 = EFL
 
 R2l0r = ASphericParametricLens(
     [F1, 0, 0],
@@ -87,8 +90,8 @@ R2l0r = ASphericParametricLens(
     R=R,
     n=n,
     kappa=R2kappa,
-    a4=R2a4 * (1e-3 / 1e-2) ** 4,
-    a6=R2a6 * (1e-3 / 1e-2) ** 6,
+    a4=R2a4 * (1e-2 / 1e-3) ** 4,
+    a6=R2a6 * (1e-2 / 1e-3) ** 6,
     name="L0",
 ).TY(R2DMLA / 2 + R2dY4F)
 
@@ -100,8 +103,8 @@ R2l1r = (
         R=R,
         n=n,
         kappa=R2kappa,
-        a4=R2a4 * (1e-3 / 1e-2) ** 4,
-        a6=R2a6 * (1e-3 / 1e-2) ** 6,
+        a4=R2a4 * (1e-2 / 1e-3) ** 4,
+        a6=R2a6 * (1e-2 / 1e-3) ** 6,
         name="L1",
     )
     .RotZ(np.pi)
@@ -183,7 +186,7 @@ if __name__ == "__main__":
         d1 = ray1i.distance_to_waist(ray1i.q_at_z(t1))
         pl0 = ray0i.pathlength(t0)
         pl1 = ray1i.pathlength(t1)
-        d = 1.5
+        d = R2d
         roci = 2 * (d**2 + d0 * d1) / (d0 + d1)
         ax0.scatter(P[0], P[1], color="magenta", s=10)
         ax1[0].scatter(P[0], P[1], color="magenta", s=10)

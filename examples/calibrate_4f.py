@@ -2,6 +2,8 @@
 # unit in cm
 
 import numpy as np, sys, matplotlib.pyplot as plt, matplotlib.gridspec as gridspec
+
+sys.path.append("../")
 from optable import *
 
 PLOT_TYPE = "Z"  # "Z" or "3D"
@@ -16,7 +18,7 @@ if __name__ == "__main__":
     ax1 = [plt.subplot(gs1[i]) for i in range(3)]
 
 
-LENS = 8
+LENS = 9
 if LENS == 2:
     # Thorlabs LA1353 - 75mm
     EFLr = 20
@@ -144,6 +146,38 @@ elif LENS == 8:
         name="L0",
     )
 
+elif LENS == 9:
+    # Parametric Aspheric Lens
+    EFL = 43.17
+    CT = 0.8
+    # n = 1.5
+    # n = Glass_NBK7()
+    n = Glass_UVFS()
+    R = EFL * (n.n(780e-9) - 1)
+    DL = 2.54 * 3
+    # DXMON2 = 1.009
+    # F1 = 37.5
+    # F2 = 37.5
+    F1 = EFL
+    F2 = EFL
+    # "R2kappa": [-1.03113, -2, 2],
+    # "R2a4": [-0.00223, -2e-1, 2e-1],
+    # "R2a6": [0.006353, -2e-1, 2e-1],
+    R2kappa = -1.03113
+    R2a4 = -0.00223
+    R2a6 = 0.006353
+    #
+    lens0 = ASphericParametricLens(
+        [F1, 0, 0],
+        CT=CT,
+        diameter=DL,
+        R=R,
+        n=n,
+        kappa=R2kappa,
+        a4=R2a4 * (1e-3 / 1e-2) ** 4,
+        a6=R2a6 * (1e-3 / 1e-2) ** 6,
+        name="L0",
+    )
 
 if __name__ == "__main__":
     N = 3
@@ -158,6 +192,8 @@ if __name__ == "__main__":
     ]
     # CRITERION = "M=-I"
     # CRITERION = "flat_field"
+    F1 = 46.52
+    F2 = 43.48
     CRITERION = "min_stdtY"
     Ms, yList, tYList = OpticalTable.calibrate_symmetric_4f(
         lens0, r0, F10=F1, F20=F2, debugaxs=ax0, optimize=False, display_M=True
@@ -177,5 +213,4 @@ if __name__ == "__main__":
         lens0, r0, F10=F1, F20=F2, debugaxs=ax0, optimize=False, display_M=True
     )
 
-    print("FK")
-    plt.show()
+    plt.show(block=True)
