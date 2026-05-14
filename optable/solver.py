@@ -1,6 +1,27 @@
 import numpy as np
 from typing import List, Tuple, Union
 
+def solve_move_lens(old_ray_direction, desired_ray_direction, focus_length):
+	"""
+	very simple solve function to get a new x location for a lens
+	to achieve the modification of old_ray_direction -> lens -> desired_ray_direction
+	"""
+	if old_ray_direction == 0:
+		return 0
+		
+	# simple ray math
+	# p = v*x , the point where the ray collides with the lens
+	# x is the distance from the last focal point
+	#
+	# v_ = v - (p/fl) # move v
+	# v_ - v = - p /fl   # move fl, replace p
+	# (v_-v) * fl =  - v * x # divide by -v
+	# x = - ((v_-v)*fl)/v)
+	
+	# if v were 0, that's a problem and why we quit early above.
+	
+    x = - (((desired_ray_direction - old_ray_direction) * focus_length) / old_ray_direction)
+    return x
 
 def solve_ray_bboxes_intersections(
     ray_origin, ray_direction, bboxes: Union[List[Tuple], Tuple]
