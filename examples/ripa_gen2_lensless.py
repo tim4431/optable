@@ -1,6 +1,5 @@
 import numpy as np, sys, os, matplotlib.pyplot as plt, matplotlib.gridspec as gridspec
 
-
 sys.path.append("../")
 from optable import *
 
@@ -51,23 +50,25 @@ BMMABlock = False
 # EnableMP = False
 EnableMP = True
 # Constants
-BW = 6.8  # in GHZ
-R2ultraR = 0.9995
+BW = 6.83  # in GHZ
+R2ultraR = 0.9999
 R2R = 0.98
 R2wl = 780e-7  # in cm
 # R2DMLA = 500e-4
-R2DMLA = 260e-4
+R2DMLA = 4200e-4
 R2NMLA = 20
 R2MMLA = 5
 R2W = R2DMLA * R2NMLA / 2
 R2H = R2DMLA * R2MMLA / 2
+MMAshify = R2DMLA / (R2MMLA + 1)
+print("MMAshify=", MMAshify)
 
 # Rays
 R2d = 3e8 / (2 * BW * 1e9) / 0.01
 print("R2d=", R2d, "cm")
-Lrt = 2 * np.sqrt(R2d**2 + R2DMLA**2 / 4)
-# R2MLAROCCOEF = 1.0
-R2MLAROCCOEF = 1.2
+Lrt = 2 * np.sqrt(R2d**2 + (MMAshify / 2) ** 2 + (R2DMLA / 2) ** 2)
+R2MLAROCCOEF = 1.0
+# R2MLAROCCOEF = 1.2
 R2MLAroc = (Lrt) * R2MLAROCCOEF
 print("R2MLAroc=", R2MLAroc, "cm")
 # R2w0 = np.sqrt(R2wl * R2MLAroc / (2 * np.pi))
@@ -80,16 +81,14 @@ print("MMLA*NMLA*clipping_loss=", R2MMLA * R2NMLA * clipping_loss)
 R2theta0 = np.arctan(R2DMLA / R2d / 2)
 print("R2theta0=", R2theta0)
 R2ZRay = (R2MMLA / 2) * R2DMLA
-# print(R2ZRays)
+print("R2ZRay=", R2ZRay)
 # Input physical rays
 R2X_waist = 0
-D = 0.1
-MMAshify = R2DMLA / (R2MMLA + 1)
+
 vec_input = np.array([R2d, -MMAshify / 2, R2DMLA / 2])
 vec_input = vec_input / np.linalg.norm(vec_input)
 vec_output = np.array([-R2d, -MMAshify / 2, R2DMLA / 2])
 vec_output = vec_output / np.linalg.norm(vec_output)
-LMMAconnect = (Lrt / 2) * np.linalg.norm([vec_output[0], vec_output[2]])
 vec_output_projxz = [vec_output[0], vec_output[2]]
 vec_output_projxz /= np.linalg.norm(vec_output_projxz)
 
@@ -101,16 +100,20 @@ R2rays0 = [
         w0=R2w0,
     ).Propagate(-(R2X_waist - (0)))
 ]
-origin_output = np.array([0, R2ZRay])
+origin_output = np.array([0, -MMAshify / 2, R2ZRay])
 DMMA = 0.1
 
 
 def hit_point(t):
-    p = origin_output + vec_output_projxz * t
-    o_BMMA = np.array([-DMMA, 0])
+    p = origin_output + vec_output * t
+    o_BMMA = np.array([-DMMA, 0, 0])
     vec2 = p - o_BMMA
+    # print("vec2=", vec2)
     t2 = np.linalg.norm(vec2)
-    vec_mid = (vec2 / t2 + vec_output_projxz) / 2
+    vec2_projxz = [vec2[0], vec2[2]]
+    vec2_projxz = np.array(vec2_projxz) / np.linalg.norm(vec2_projxz)
+    vec_mid = (vec2_projxz + vec_output_projxz) / 2
+    vec_mid /= np.linalg.norm(vec_mid)
     angle = np.arcsin(vec_mid[1])
     return t + t2, p, angle
 
@@ -118,18 +121,21 @@ def hit_point(t):
 # solve t within 0-Lrt st hit_point(t)=Lrt/2
 from scipy.optimize import brentq
 
-t_solution = brentq(lambda t: hit_point(t)[0] - LMMAconnect, 0, Lrt)
+t_solution = brentq(lambda t: hit_point(t)[0] - Lrt / 2, 0, Lrt)
 _, p, angle_solution = hit_point(t_solution)
+print("t_solution=", t_solution)
+print("p=", p)
+print("angle_solution=", angle_solution * 180 / np.pi, "deg")
 
 R2delta = 2 * R2w0  # cut on both sides of mirror
 R2Wm0 = (R2NMLA) * R2DMLA + 2 * R2delta
 R2Hm0 = (R2MMLA) * R2DMLA - 2 * R2delta
 
 R2mp1 = SquareMirror(
-    [p[0], 0, p[1]], width=R2Wm0, height=0.1, reflectivity=R2ultraR
+    [p[0], 0, p[2]], width=R2Wm0, height=0.1, reflectivity=R2ultraR
 ).RotY(angle_solution)
 R2mp2 = SquareMirror(
-    [p[0], 0, -p[1]], width=R2Wm0, height=0.1, reflectivity=R2R, transmission=0.1
+    [p[0], 0, -p[2]], width=R2Wm0, height=0.1, reflectivity=R2R, transmission=0.1
 ).RotY(-angle_solution)
 
 
@@ -169,7 +175,7 @@ R2m1 = SquareMirror(origin=[R2XMLA, 0, 0], width=R2W * 2, height=R2H * 2)
 
 
 R2Mon0 = Monitor([R2XMLA - 1e-4, 0, 0], width=R2W * 3, height=R2H * 3)
-R2Mon1 = Monitor([-DMMA - 1e-4, 0, 0], width=R2Wm0, height=R2Hm0)
+R2Mon1 = Monitor([-DMMA - 1e-4, 0, 0], width=R2Wm0 * 2, height=R2Hm0 * 2)
 R2blk0 = Block([R2XMLA - 5e-5, 0, 0], width=R2W * 3, height=R2H * 3)
 R2blk1 = Block([-DMMA - 5e-5, 0, 0], width=R2Wm0, height=R2Hm0)
 

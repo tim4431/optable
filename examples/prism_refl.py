@@ -1,4 +1,6 @@
 import numpy as np, sys, matplotlib.pyplot as plt, matplotlib.gridspec as gridspec
+
+sys.path.append("../")  # add parent directory to path
 from optable import *
 
 PLOT_TYPE = "Z"  # "Z" or "3D"
@@ -20,8 +22,8 @@ for var, val in vars.items():
     if var not in locals():
         exec(f"{var} = {val[0]}")
 
-theta = 0.00815
-L = 5
+theta = 0.00956
+L = 6
 wl = 780e-7
 w0 = 61e-4
 nmat = Glass_NBK7()
@@ -29,16 +31,18 @@ n = nmat.n(780e-9)
 dalpha = n * theta / (n**2 - 1)
 print(f"alpha: {dalpha*180/np.pi} deg")
 
-D = 2.5
+D = 3 - 210e-4
 rays = [
     Ray([3, y + L / 2, 0], [-1, 0, 0], wavelength=wl, w0=w0, id=i)
-    .Propagate(-10)
+    .Propagate(-3)
     .RotZ(theta)
     for i, y in enumerate(np.linspace(-D, D, 5))
 ]
 print([ray._id for ray in rays])
 
 # dth = 3 * np.pi / 180
+dth = 0
+dalpha = 0
 alpha = np.pi / 4 + dth
 beta = np.pi / 2 - dalpha - 2 * dth
 print(f"alpha: {alpha*180/np.pi} deg, beta: {beta*180/np.pi} deg")
@@ -65,7 +69,7 @@ table.add_components(components)
 table.add_monitors([mon0])
 table.ray_tracing(rays)
 
-table.render(ax0, type=PLOT_TYPE, roi=[-5, 5, -10, 5, -5, 5], gaussian_beam=True)
+table.render(ax0, type=PLOT_TYPE, roi=[-10, 10, -15, 10, -5, 5], gaussian_beam=True)
 mon0.render_scatter(ax1[0])
 
 if __name__ == "__main__":
