@@ -441,9 +441,18 @@ class PointObj(OpticalComponent):
 
     def render(self, ax, type: str, **kwargs):
         """Render the point marker in 2D or 3D."""
-        if type == "Z":
+        if type in ["X", "Y", "Z"]:
+            dimension_dict = {"Z": [0, 1], "X": [1, 2], "Y": [2, 0]}
+            switch_axis = kwargs.get("switch_axis", False)
+            if switch_axis:
+                dimension_dict[type] = dimension_dict[type][::-1]
+
             ax.scatter(
-                self.origin[0], self.origin[1], color=self._edge_color, marker="+", s=20
+                self.origin[dimension_dict[type][0]],
+                self.origin[dimension_dict[type][1]],
+                color=self._edge_color,
+                marker="+",
+                s=20,
             )
         elif type == "3D":
             ax.scatter(
