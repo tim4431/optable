@@ -49,6 +49,8 @@ class Surface(Base):
         )
 
     def merge_bboxs(self, bboxs):
+        if len(bboxs) == 0:
+            return (0, 0, 0, 0, 0, 0)
         return (
             np.min([b[0] for b in bboxs]),
             np.max([b[1] for b in bboxs]),

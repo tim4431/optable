@@ -12,8 +12,8 @@ ripa_2nd_demo = {
     "R2dXMLA": [0.0, -0.3, 0.4],
     "R2dY4F": [0, -0.5, 0.5],
     "R2kappa": [-1.01705, -2, 2],
-    "R2a4": [-4.00e-11, -2e-9, 2e-9],
-    "R2a6": [3.180e-15, -2e-13, 2e-13],
+    "R2a4": [-4.00e-10, -2e-9, 2e-9],
+    "R2a6": [3.180e-14, -2e-13, 2e-13],
 }
 
 presets = {"default": ripa_2nd_demo}
@@ -38,6 +38,7 @@ R2X_waist = 0
 R2d = 3e8 / (2 * BW * 1e9) / 0.01  # half round-trip length set by BW, in cm
 print("R2d=", R2d, "cm")
 R2MLAroc = R2d * 2
+print("R2MLAroc=", R2MLAroc, "cm")
 R2w0 = np.sqrt(R2wl * R2MLAroc / (2 * np.pi))
 print("R2w0=", R2w0 * 1e4, "um")
 print("R2DMLA/R2w0=", R2DMLA / R2w0)
@@ -90,8 +91,8 @@ R2l0r = ASphericParametricLens(
     R=R,
     n=n,
     kappa=R2kappa,
-    a4=R2a4 * (1e-2 / 1e-3) ** 4,
-    a6=R2a6 * (1e-2 / 1e-3) ** 6,
+    a4=R2a4 * (1e-2 / 1e-3) ** 3,
+    a6=R2a6 * (1e-2 / 1e-3) ** 5,
     name="L0",
 ).TY(R2DMLA / 2 + R2dY4F)
 
@@ -103,8 +104,8 @@ R2l1r = (
         R=R,
         n=n,
         kappa=R2kappa,
-        a4=R2a4 * (1e-2 / 1e-3) ** 4,
-        a6=R2a6 * (1e-2 / 1e-3) ** 6,
+        a4=R2a4 * (1e-2 / 1e-3) ** 3,
+        a6=R2a6 * (1e-2 / 1e-3) ** 5,
         name="L1",
     )
     .RotZ(np.pi)

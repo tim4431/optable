@@ -60,8 +60,10 @@ MMABlock = False
 # MMABlock = True
 BMMABlock = False
 # BMMABlock = True
-# EnableMP = False
-EnableMP = True
+EnableMP = False
+# EnableMP = True
+SecondMMA = False
+# SecondMMA = True
 #
 # Constants
 BW = 6.83  # in GHZ
@@ -121,7 +123,7 @@ R1rays0 = [
     ).Propagate(-(R2X_waist - (0)))
 ]
 origin_output = np.array([0, -R1MMAshify / 2, R1ZRay])
-R1DMMA = 0.1
+R1DMMA = 0.2
 
 
 def hit_point(t):
@@ -212,6 +214,7 @@ R1Mon0 = Monitor(
 R1Mon1 = Monitor(
     [-R1DMMA - 1e-4, 0, 0], width=R1Wm0 * 2, height=R1Hm0 * 2, render_obj=SHOW_MONITOR
 )
+R1Mon2 = Monitor([-R1DMMA - 0.01, 0, 0], width=0.1, height=0.1, render_obj=SHOW_MONITOR)
 R1blk0 = Block(
     [R1d - 5e-5, 0, 0], width=R1W / 2 * 3, height=R1H / 2 * 3, render_obj=SHOW_MONITOR
 )
@@ -229,6 +232,7 @@ if BMMABlock:
 ripa1 = ComponentGroup([0, 0, 0])
 ripa1.add_components(components)
 ripa1.add_monitors([R1Mon0, R1Mon1])
+ripa1.add_monitors([R1Mon2])
 ripa1.add_refpoint(ripa1_output_refpoint)
 
 
@@ -282,9 +286,14 @@ R2Mon0 = Monitor(
     [R1d - 1e-4, 0, 0], width=R1W * 3, height=R1H * 3, render_obj=SHOW_MONITOR
 ).TZ(-R1W / 2)
 
-components = [R2mma, R2m0]
+components = []
+if SecondMMA:
+    components.append(R2mma)
+if EnableMP:
+    components.append(R2m0)
 ripa2 = ComponentGroup([0, 0, 0])
-ripa2.add_components(components)
+if len(components) > 0:
+    ripa2.add_components(components)
 ripa2.add_monitors([R2Mon0])
 ripa2.RotY((np.pi - ripa2_rotate_angle - R1theta0))
 # print(ripa1_output_refpoint.origin)
@@ -298,6 +307,8 @@ table.add_components([R12blk0])
 table.add_monitors(ripa1.monitors)
 table.add_monitors(ripa2.monitors)
 table.ray_tracing(R1rays0, perfomance_limit={"max_trace_num": 1e5})
+
+print(R1Mon2.directionList)
 
 if DETAILED_RENDER:
     table.render(

@@ -1,0 +1,27 @@
+ASPHERIC SURFACE PRESCRIPTION  (lens L0)
+============================================================
+Material        : fused silica (UV-grade, UVFS / Corning 7980 equiv.)
+Design wavelength: 780 nm
+Refractive index : n(780 nm) = 1.453671
+Clear aperture   : dia 75.0 mm  (semi-aperture 37.5 mm)
+Center thickness : 8.00 mm  (plano-convex; 2nd face is flat)
+
+SURFACE: even asphere, both axes in MILLIMETRES
+  sag z(r) = (r^2 / R) / (1 + sqrt(1 - (1+k) * r^2 / R^2))
+             + A4*r^4 + A6*r^6
+
+  r  = radial distance from optical axis              [mm]
+  z  = sag, surface height from the vertex (z=0 at r=0) [mm]
+
+  Radius of curvature   R  = 195.8499 mm   (curvature 1/R = 5.105952e-03 1/mm)
+  Conic constant        k  = -1.01705     (dimensionless)
+  4th-order coeff       A4 = -4.000000e-10  mm^-3
+  6th-order coeff       A6 = 3.180000e-14  mm^-5
+  (8th-order and higher = 0)
+
+Aspheric departure from the base conic at the edge (r=37.5 mm):
+  A4*r^4 + A6*r^6 = -0.7026 um
+Total sag at the edge: 3.5889 mm
+
+Numerical sag table: see asphere_sag_table.csv  (radius_mm, sag_mm).
+Both columns are in millimetres; vertex at r=0.
