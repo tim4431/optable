@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import scipy
 from .base import *
 from .ray import *
