@@ -1,4 +1,22 @@
-from .base import *
+from typing import Callable, List, Union
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+__all__ = [
+    "Material",
+    "ConstMaterial",
+    "Vacuum",
+    "SellmeierMaterial",
+    "RefractiveIndex",
+    "plot_material_refractive_index",
+    "Glass_NBK7",
+    "Glass_UVFS",
+    "Glass_NSF5",
+    "Glass_NSF11",
+    "Glass_NSK2",
+    "Glass_NSF57",
+]
 
 
 class Material:

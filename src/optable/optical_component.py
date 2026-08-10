@@ -1,10 +1,40 @@
 from __future__ import annotations
 
+from typing import List, Tuple, Union
+
+import numpy as np
+import matplotlib.pyplot as plt
 import scipy
-from .base import *
-from .ray import *
-from .surfaces import *
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+from .base import Vector, Color, get_attr_str, to_mathematical_str
+from .material import Material, RefractiveIndex
+from .ray import Ray
+from .surfaces import (
+    Circle,
+    Cylinder,
+    Plane,
+    Point,
+    Rectangle,
+    Sphere,
+    Surface,
+)
+
+__all__ = [
+    "OpticalComponent",
+    "PointObj",
+    "Block",
+    "BaseMirror",
+    "BaseRefraciveSurface",
+    "Mirror",
+    "SquareMirror",
+    "SquareRefractive",
+    "CircleRefractive",
+    "SphereRefractive",
+    "BeamSplitter",
+    "Lens",
+    "CylMirror",
+]
 
 
 class OpticalComponent(Vector):

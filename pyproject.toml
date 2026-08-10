@@ -10,13 +10,19 @@ authors = [
 ]
 description = "A simple ray tracing and visualization tool for freespace optics."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Education",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Physics",
+    "Operating System :: OS Independent",
 ]
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
@@ -27,11 +33,22 @@ dependencies = [
     "scipy>=1.7",
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest>=7",
+]
 
 [project.urls]
 Homepage = "https://github.com/tim4431/optable"
+Documentation = "https://optable.readthedocs.io"
 Issues = "https://github.com/tim4431/optable/issues"
 
-[tool.setuptools]
-packages = ["optable"]
-include-package-data = true
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+optable = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

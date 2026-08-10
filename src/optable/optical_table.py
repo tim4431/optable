@@ -1,9 +1,22 @@
-from .optical_component import *
-from .component_group import *
-from .monitor import *
+from typing import List, Union
+
+import copy
 import matplotlib.pyplot as plt
 import numpy as np, time, csv
 from copy import deepcopy
+
+from .base import (
+    base_merge_bboxs,
+    get_attr_str,
+    to_mathematical_str,
+    wavelength_to_rgb,
+)
+from .ray import Ray
+from .optical_component import OpticalComponent
+from .component_group import ComponentGroup
+from .monitor import Monitor
+
+__all__ = ["OpticalTable"]
 
 
 class OpticalTable:
@@ -268,9 +281,9 @@ class OpticalTable:
         Ms = np.zeros((Nrays, 2, 2))  # store each ray's ABCD matrix
         # now bias rays in principal axis, and perform ray tracing
         rays_biased = []
-        # first bias in position
+        # first bias in position (on copies: the unbiased rays are reused below)
         for idx in range(Nrays):
-            rays_biased.append(rays[idx]._Translate(pax0_dispvec * disp))
+            rays_biased.append(deepcopy(rays[idx])._Translate(pax0_dispvec * disp))
         _simulate(rays_biased)
         yList10 = mon1.get_yList(sort="ID")
         tYList10 = mon1.get_tYList(sort="ID")
@@ -279,8 +292,10 @@ class OpticalTable:
         # then bias in angle
         rays_biased = []
         for idx in range(Nrays):
+            # PList is recorded in mon0's local frame; _RotAround expects lab frame
+            P_lab = mon0.point_to_lab_coordinates(PListmon0[idx])
             rays_biased.append(
-                rays[idx]._RotAround(pax0_rotvec, PListmon0[idx], rot)
+                deepcopy(rays[idx])._RotAround(pax0_rotvec, P_lab, rot)
             )  # rotate around the intersection point on mon0
         _simulate(rays_biased)
         yList01 = mon1.get_yList(sort="ID")

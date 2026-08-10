@@ -1,6 +1,16 @@
-from .base import *
+from typing import List, Union
+
+import numpy as np
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-from .material import *
+
+from .base import Vector, wavelength_to_rgb
+from .material import RefractiveIndex
+
+__all__ = [
+    "GaussianBeam",
+    "Ray",
+    "multiplex_rays_in_wavelength",
+]
 
 _RAY_NONE_LENGTH = 100
 

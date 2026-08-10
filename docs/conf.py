@@ -16,7 +16,7 @@ import sys
 import os
 import runpy
 
-sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath("../src"))
 # resolve problem with not having _tkinter on server used for documentation building
 autodoc_mock_imports = ["_tkinter"]
 import matplotlib  # noqa: E402

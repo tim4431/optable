@@ -1,5 +1,14 @@
-from .optical_component import *
-from .component_group import *
+from typing import List
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+from .ray import Ray
+from .surfaces import Rectangle
+from .optical_component import OpticalComponent
+from .component_group import ComponentGroup
+
+__all__ = ["Monitor"]
 
 
 class Monitor(OpticalComponent):

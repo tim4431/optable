@@ -8,7 +8,7 @@ A simple ray tracing and visualization tool for freespace optics.
 
 dedicated to phys students working with freespace optics.
 
-[![Python Version](https://img.shields.io/badge/python-%3E%3D3.8-blue)](https://www.python.org/)
+[![Python Version](https://img.shields.io/badge/python-%3E%3D3.9-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/tim4431/optable?style=social)](https://github.com/tim4431/optable/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/tim4431/optable?style=social)](https://github.com/tim4431/optable/network/members)
@@ -36,6 +36,15 @@ or install from source:
 git clone https://github.com/tim4431/optable.git
 cd optable
 pip install -e .
+```
+
+## Development
+
+The package lives in `src/optable/`. To set up a development environment and run the tests:
+
+```bash
+pip install -e .[test]
+pytest
 ```
 
 ## Example
