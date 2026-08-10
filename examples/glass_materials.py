@@ -1,6 +1,5 @@
-import numpy as np, sys, matplotlib.pyplot as plt, matplotlib.gridspec as gridspec
+import numpy as np, matplotlib.pyplot as plt, matplotlib.gridspec as gridspec
 
-sys.path.append("../")
 from optable import *
 
 BK7 = Glass_NBK7()

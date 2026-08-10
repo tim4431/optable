@@ -1,6 +1,5 @@
-import numpy as np, sys, os, matplotlib.pyplot as plt, matplotlib.gridspec as gridspec
+import numpy as np, matplotlib.pyplot as plt, matplotlib.gridspec as gridspec
 
-sys.path.append("../")
 from optable import *
 
 # PLOT_TYPE = "X"  # "Z" or "3D"

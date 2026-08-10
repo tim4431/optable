@@ -1,10 +1,8 @@
 import numpy as np
-import sys
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from copy import deepcopy
 
-sys.path.append("../")
 from optable import *
 
 # ── Tunable parameters [value, min, max] ──

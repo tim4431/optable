@@ -14,10 +14,8 @@ trace uses (coefficients include the (1e-2/1e-3)**4 / **6 conversions).
 
 import os
 import numpy as np
-import sys
 import matplotlib.pyplot as plt
 
-sys.path.append("../")
 from optable import *
 
 # ── Design parameters (identical to ripa_gen2_2nd_simplified.py) ──

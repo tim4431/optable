@@ -164,5 +164,5 @@ cython_debug/
 demo/
 docs/examples/output/
 docs/examples/generated/
-optable/zmxread.py
-optable/zmxro.py
+src/optable/zmxread.py
+src/optable/zmxro.py

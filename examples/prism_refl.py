@@ -1,6 +1,5 @@
-import numpy as np, sys, matplotlib.pyplot as plt, matplotlib.gridspec as gridspec
+import numpy as np, matplotlib.pyplot as plt, matplotlib.gridspec as gridspec
 
-sys.path.append("../")  # add parent directory to path
 from optable import *
 
 PLOT_TYPE = "Z"  # "Z" or "3D"
