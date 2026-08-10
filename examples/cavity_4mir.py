@@ -1,6 +1,6 @@
 # expsetup.py
 
-import numpy as np, sys
+import numpy as np, matplotlib.pyplot as plt
 from optable import *
 
 if __name__ == "__main__":

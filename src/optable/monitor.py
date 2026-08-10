@@ -226,7 +226,7 @@ class Monitor(OpticalComponent):
 
     def get_beam_waist(self):
         tList = self.tList
-        rList = self.rList
+        rList = self.rays
         waist_List = []
         for r, t in zip(rList, tList):
             q = r.q_at_z(t)

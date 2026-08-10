@@ -562,8 +562,11 @@ class Polygon(Plane):
             x2, y2 = verts[(i + 1) % len(verts)]
 
             # (a) exactly on edge?  treat as inside
+            # 2-D cross product spelled out: numpy >= 2.0 dropped np.cross
+            # for 2-element vectors
+            cross_z = (x2 - x1) * (py - y1) - (y2 - y1) * (px - x1)
             if (
-                np.abs(np.cross([x2 - x1, y2 - y1], [px - x1, py - y1])) <= self._tol
+                np.abs(cross_z) <= self._tol
                 and min(x1, x2) - self._tol <= px <= max(x1, x2) + self._tol
                 and min(y1, y2) - self._tol <= py <= max(y1, y2) + self._tol
             ):
