@@ -971,8 +971,9 @@ class Lens(OpticalComponent):
         #
         v0 = ray.direction
         f = self.focal_length
-        # lens equation: v' = v - P/f
-        v = v0 - P / f
+        # Apply the thin-lens slope change to a unit direction vector.
+        # P lies in the local x=0 plane; abs supports incidence from either side.
+        v = v0 - abs(v0[0]) * P / f
         deflected_ray = ray.copy(
             origin=P, direction=v, intensity=ray.intensity * self.transmission, qo=qo
         )

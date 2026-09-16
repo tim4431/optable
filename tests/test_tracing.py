@@ -1,6 +1,7 @@
 """End-to-end ray tracing: reflection, thin-lens focusing, monitors, ABCD."""
 
 import numpy as np
+import pytest
 
 from optable import Lens, Mirror, Monitor, OpticalTable, Ray
 
@@ -21,18 +22,31 @@ def test_mirror_reflects_45_degrees():
     assert reflected[0]._id == source._id
 
 
-def test_thin_lens_focuses_parallel_rays():
+@pytest.mark.parametrize("axial_direction", [1, -1])
+@pytest.mark.parametrize("transverse_direction", [(0, 0), (0.2, -0.1)])
+def test_thin_lens_focuses_parallel_rays(axial_direction, transverse_direction):
     focal_length = 5.0
+    direction = np.array([axial_direction, *transverse_direction], dtype=float)
+    direction /= np.linalg.norm(direction)
     table = OpticalTable()
     table.add_components(Lens([10, 0, 0], focal_length=focal_length, radius=1.0))
-    focal_plane = Monitor([10 + focal_length, 0, 0], width=2.0, height=2.0)
+    focal_plane = Monitor(
+        [10 + axial_direction * focal_length, 0, 0], width=4.0, height=4.0
+    )
     table.add_monitors(focal_plane)
 
-    rays = [Ray([0, y, 0], [1, 0, 0]) for y in (-0.2, 0.1, 0.3)]
+    # Aim a parallel bundle at a grid covering both transverse dimensions.
+    rays = [
+        Ray(np.array([10, y, z]) - 2 * direction, direction)
+        for y in np.linspace(-0.4, 0.4, 9)
+        for z in np.linspace(-0.4, 0.4, 9)
+    ]
     table.ray_tracing(rays)
 
-    assert focal_plane.ndata == 3
-    assert np.allclose(focal_plane.yList, 0.0, atol=1e-9)
+    expected_yz = focal_length * direction[1:] / abs(direction[0])
+    assert focal_plane.ndata == len(rays)
+    np.testing.assert_allclose(focal_plane.yList, expected_yz[0], rtol=0, atol=1e-9)
+    np.testing.assert_allclose(focal_plane.zList, expected_yz[1], rtol=0, atol=1e-9)
 
 
 def test_monitor_records_intensity():
