@@ -50,6 +50,7 @@ from .ray import (
     GaussianBeam,
     Ray,
     multiplex_rays_in_wavelength,
+    gaussian_mode_overlap,
 )
 from .optical_component import (
     OpticalComponent,
@@ -133,6 +134,7 @@ __all__ = [
     "GaussianBeam",
     "Ray",
     "multiplex_rays_in_wavelength",
+    "gaussian_mode_overlap",
     # optical_component
     "OpticalComponent",
     "PointObj",

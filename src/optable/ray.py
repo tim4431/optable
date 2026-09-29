@@ -10,9 +10,32 @@ __all__ = [
     "GaussianBeam",
     "Ray",
     "multiplex_rays_in_wavelength",
+    "gaussian_mode_overlap",
 ]
 
 _RAY_NONE_LENGTH = 100
+
+
+def gaussian_mode_overlap(q_reference, q_return, wavelength, displacement=(0, 0),
+                          angle=(0, 0)):
+    """Normalized 2D power overlap of circular Gaussian modes in air.
+
+    Both q values and transverse angles use the SAME propagation direction.
+    At the original waist the desired backward mode has q = +i*z_R.
+    Includes displacement, angle, radius, curvature, and their cross terms.
+    Excludes coating losses, clipping, polarization, and aberrations.
+    """
+    if wavelength <= 0 or q_reference.imag <= 0 or q_return.imag <= 0:
+        raise ValueError("Wavelength and imaginary q parts must be positive")
+    d, theta = np.asarray(displacement, float), np.asarray(angle, float)
+    if d.shape != (2,) or theta.shape != (2,):
+        raise ValueError("Displacement and angle must each have two components")
+    k = 2 * np.pi / wavelength
+    a1, a2 = 0.5j * k / q_reference, 0.5j * k / q_return
+    a = a1.conjugate() + a2
+    b = 2 * a2 * d - 1j * k * theta
+    exponent = 2 * np.real(-a2 * np.dot(d, d) + np.sum(b * b) / (4 * a))
+    return float(np.clip(4 * a1.real * a2.real / abs(a)**2 * np.exp(exponent), 0, 1))
 
 
 class GaussianBeam:

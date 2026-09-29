@@ -75,7 +75,7 @@ R1NMLA = 80
 R1MMLA = 15
 
 # computation
-Lrt = 3e8 / (2 * BW * 1e9) / 0.01
+Lrt = 3e8 / (BW * 1e9) / 0.01
 print("Lrt=", Lrt, "cm")
 #
 R1MMAshify = DMLA / (R1MMLA + 1)
